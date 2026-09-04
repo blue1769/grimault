@@ -43,14 +43,13 @@
 
 # 프로젝트 명명
 
-[!TIP]
-💡 **“Grimault”**
-
-— The Sovereign Financial Ledger & Private Archive
-
-
-- 장기간 누적한 삶의 궤적이 응축된 금융 지식의 비전서(Grimoire)이자,
-- 외부 플랫폼에 종속하지 않고 홈랩에 단단히 봉인한 금고(Vault)라는 의미의 합성 조어
+> [!NOTE]
+> **“Grimault”**
+>
+> — The Sovereign Financial Ledger & Private Archive
+>
+> - 장기간 누적한 삶의 궤적이 응축된 금융 지식의 비전서(Grimoire)이자,
+> - 외부 플랫폼에 종속하지 않고 홈랩에 단단히 봉인한 금고(Vault)라는 의미의 합성 조어
 
 # 마일스톤 및 우선순위
 
