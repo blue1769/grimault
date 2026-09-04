@@ -67,7 +67,7 @@
 
 <aside>
 
-📄 데이터 추출 및 스키마 설계
+📄 [데이터 추출 및 스키마 설계](docs/data-and-schema.md)
 
 </aside>
 
