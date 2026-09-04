@@ -4,11 +4,8 @@
 
 ## DBMS 선정
 
-<aside>
-
-✅ **“PostgreSQL”**
-
-</aside>
+> [!IMPORTANT]
+> **“PostgreSQL”**
 
 ### PostgreSQL의 강점
 
@@ -28,12 +25,8 @@
 - NAS 컨테이너를 통한 손쉬운 운영 환경 가용성 확보
 
 ## 작업 파일 관리 전략
-
-<aside>
-
-✅ **“프로젝트 결과물 명명을 한 뒤에 별도 분리”**
-
-</aside>
+> [!CAUTION]
+> **“프로젝트 결과물 명명을 한 뒤에 별도 분리”**
 
 ```jsx
 household-ledger/
@@ -145,11 +138,8 @@ household-ledger/
 
 - [x]  RAW 데이터 데이터베이스 입력
 - ~~RAW 데이터 기반 네이버 가계부 기능별 사용성 및 패턴 분석~~
-    <aside>
-
-  📄 [Raw-data Reverse Engineering](raw-data-reverse-engineering.md)
-
-    </aside>
+    > [!NOTE]
+    > [Raw-data Reverse Engineering](raw-data-reverse-engineering.md)
 - [ ]  네이버 가계부 주요 기능 분석 및 명세, 선별
 - [ ]  신규 가계부 대상 스키마 정규화 및 설계
 
@@ -236,26 +226,23 @@ household-ledger/
    COMMENT ON COLUMN public.ledger_entry.entry_type IS '분개 속성 구분 (ASSET: 자산, LIABILITY: 부채, EXPENSE: 비용, REVENUE: 수익)';
    ```
 
-   <aside>
-   💡 참고: DB에서 직접 Markdown 테이블 명세를 작성하는 쿼리
-
-   ```sql
-   SELECT 
-       '| ' || c.column_name || 
-       ' | ' || c.data_type || 
-       ' | ' || (CASE WHEN c.is_nullable = 'NO' THEN 'NOT NULL' ELSE 'NULL' END) || 
-       ' | ' || COALESCE(pgd.description, '-') || ' |' AS markdown_row
-   FROM information_schema.columns c
-   JOIN pg_catalog.pg_statio_all_tables st 
-     ON c.table_schema = st.schemaname AND c.table_name = st.relname
-   LEFT JOIN pg_catalog.pg_description pgd 
-     ON pgd.objoid = st.relid AND pgd.objsubid = c.ordinal_position
-   WHERE c.table_schema = 'public' 
-     AND c.table_name = 'transaction'
-   ORDER BY c.ordinal_position;
-   ```
-
-   </aside>
+   > [!TIP]
+   > 💡 참고: DB에서 직접 Markdown 테이블 명세를 작성하는 쿼리
+   > ```sql
+   > SELECT 
+   >     '| ' || c.column_name || 
+   >     ' | ' || c.data_type || 
+   >     ' | ' || (CASE WHEN c.is_nullable = 'NO' THEN 'NOT NULL' ELSE 'NULL' END) || 
+   >     ' | ' || COALESCE(pgd.description, '-') || ' |' AS markdown_row
+   > FROM information_schema.columns c
+   > JOIN pg_catalog.pg_statio_all_tables st 
+   >   ON c.table_schema = st.schemaname AND c.table_name = st.relname
+   > LEFT JOIN pg_catalog.pg_description pgd 
+   >   ON pgd.objoid = st.relid AND pgd.objsubid = c.ordinal_position
+   > WHERE c.table_schema = 'public' 
+   >   AND c.table_name = 'transaction'
+   > ORDER BY c.ordinal_position;
+   > ```
 
 - [ ]  RAW 데이터 클렌징 및 마이그레이션
     - [ ]  마이그레이션 스크립트 작성
