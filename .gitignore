@@ -126,3 +126,4 @@ gradle-app.setting
 *.xls
 *.xlsx
 .env
+.idea/
