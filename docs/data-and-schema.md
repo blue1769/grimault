@@ -147,7 +147,7 @@ household-ledger/
 - ~~RAW 데이터 기반 네이버 가계부 기능별 사용성 및 패턴 분석~~
     <aside>
 
-  📄 Raw-data Reverse Engineering
+  📄 [Raw-data Reverse Engineering](raw-data-reverse-engineering.md)
 
     </aside>
 - [ ]  네이버 가계부 주요 기능 분석 및 명세, 선별
