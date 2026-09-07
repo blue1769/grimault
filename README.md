@@ -50,20 +50,15 @@
 
 # 마일스톤 및 우선순위
 
-<aside>
-📅
-
-완료 데드라인 목표는 9월 말로 예상 (roughly)
-
-</aside>
+> [!NOTE]
+> 완료 데드라인 목표는 9월 말로 예상 (roughly)
 
 ## 1st Week: 데이터 추출 및 스키마 설계
 
-> [!NOTE]
-> [데이터 추출 및 스키마 설계](docs/data-and-schema.md)
-
 - 네이버 가계부 전체 RAW data 다운로드 및 구조 분석
 - RDBMS 정규화 스키마 설계 및 인덱스 전략 수립
+- [데이터 추출 및 스키마 설계](docs/data-and-schema.md)
+- [주요 기능 요구 스펙 정의](docs/requirements-specification.md)
 - 데이터 클렌징 및 마이그레이션 스크립트 작성
 
 ## 2nd Week: 백엔드 API 구현
