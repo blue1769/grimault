@@ -47,7 +47,8 @@ replay_pid*
 .LSOverride
 
 # Icon must end with two \r
-Icon
+Icon
+
 
 # Thumbnails
 ._*
@@ -123,6 +124,7 @@ gradle-app.setting
 ### Local Data & Secrets ###
 /data/
 *.csv
+*.tsv
 *.xls
 *.xlsx
 .env
