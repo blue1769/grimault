@@ -22,29 +22,34 @@ grimault/
 ## 프로젝트 초기화
 
 ```bash
-# 프로젝트 다운로드
+# 프로젝트 루트 저장소 디렉토리 생성 및 진입
+mkdir -p grimault
+cd grimault
+```
+
+```bash
+# 필수 작업 디렉토리 생성
+mkdir data scripts docs sql backend
+```
+
+```bash
+# Spring Initializr 프로젝트 다운로드 (Kotlin DSL)
 curl "https://start.spring.io/starter.zip" \
   -d language=kotlin \
-  -d type=gradle-project \
+  -d type=gradle-project-kotlin \
   -d javaVersion=17 \
   -d bootVersion=4.1.1 \
   -d dependencies=web,data-jpa,postgresql,validation \
   -d groupId=com.blustar \
   -d artifactId=grimault \
   -d name=grimault \
-  -o grimault.zip
+  -o backend.zip
 ```
 
 ```bash
-# 압축 해제
-unzip grimault.zip -d ./grimault
-rm grimault.zip
-cd ./grimault
-```
-
-```bash
-# 필수 작업 디렉토리 생성
-mkdir data scripts docs sql
+# 백엔드 격리 압축 해제
+unzip backend.zip -d ./backend
+rm backend.zip
 ```
 
 ```bash
