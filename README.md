@@ -59,7 +59,7 @@
 - [네이버 가계부 전체 RAW data 다운로드 및 구조 분석](docs/raw-data-reverse-engineering.md)
 - [데이터 추출 및 스키마 설계](docs/data-and-schema.md)
 - [주요 기능 요구 스펙 정의](docs/requirements-specification.md)
-- 데이터 클렌징 및 마이그레이션 스크립트 작성
+- [데이터 클렌징 및 마이그레이션 스크립트 작성](docs/data-cleansing-and-migration.md)
 
 ## 2nd Week: 백엔드 API 구현
 
