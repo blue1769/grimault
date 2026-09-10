@@ -49,3 +49,40 @@ insert into public.account (name, type, sub_type, settlement_day, is_active)
 select name, type, sub_type, settlement_day, is_active
 from final
 ;
+
+-- =============================================================================
+-- master seeds for `category`
+-- =============================================================================
+with unioned_category_sources as (
+    select distinct 'EXPENSE' as type,
+                    trim(split_part(category, '>', 1)) as parent_name,
+                    trim(split_part(category, '>', 2)) as sub_name
+    from stage.outgo
+    union all
+    select distinct 'INCOME' as type,
+                    trim(split_part(category, '>', 1)) as parent_name,
+                    trim(split_part(category, '>', 2)) as sub_name
+    from stage.income
+), marked_eligible_categories as (
+    select type,
+           parent_name,
+           sub_name,
+           case
+               when (type = 'EXPENSE' and parent_name in ('이체/대체', '카드대금', '미분류')) then false
+               when (type = 'INCOME' and parent_name in ('전월이월', '미분류')) then false
+               else true
+           end as is_eligible
+    from unioned_category_sources
+), final as (
+    select type,
+           parent_name,
+           sub_name,
+           true as is_active
+    from marked_eligible_categories
+    where is_eligible = true
+    order by type, parent_name, sub_name
+)
+
+insert into public.category (type, parent_name, sub_name, is_active)
+select type, parent_name, sub_name, is_active
+from final;
