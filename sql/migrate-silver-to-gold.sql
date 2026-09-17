@@ -4,14 +4,14 @@
 with unioned_account_sources as (
     select coalesce(bank_account, card_name) as name,
            case when bank_account is not null and card_name is not null then card_name end as payment_detail -- 추후 거래 내역 분개 작성 시 참조
-    from stage.outgo
+    from stage.outgo_curated
     union all
     select deposit_account as name, null as payment_detail
-    from stage.income
+    from stage.income_curated
     union all
     select distinct trim(split_part(category, '>', 2)) as name,
            null as payment_detail
-    from stage.outgo
+    from stage.outgo_curated
     where category ilike '이체/대체>%'
 ), deduped_accounts as (
     select distinct name
@@ -57,12 +57,12 @@ with unioned_category_sources as (
     select distinct 'EXPENSE' as type,
                     trim(split_part(category, '>', 1)) as parent_name,
                     trim(split_part(category, '>', 2)) as sub_name
-    from stage.outgo
+    from stage.outgo_curated
     union all
     select distinct 'INCOME' as type,
                     trim(split_part(category, '>', 1)) as parent_name,
                     trim(split_part(category, '>', 2)) as sub_name
-    from stage.income
+    from stage.income_curated
 ), marked_eligible_categories as (
     select type,
            parent_name,
