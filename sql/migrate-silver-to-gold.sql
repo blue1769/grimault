@@ -440,3 +440,74 @@ from journal_entry_bases
 ;
 
 commit;
+
+-- ==========================================================================
+-- #5. journalize equity transaction
+-- ==========================================================================
+begin;
+
+create temp table tmp_eligible_equities on commit drop as
+with cleansing_sources as (
+    select raw_id,
+           entry_date,
+           amount,
+           deposit_account as account_name,
+           tags
+    from stage.income_curated
+), eligible_equities as (
+    select s.raw_id,
+           s.entry_date,
+           a.id as account_id,
+           a.name as account_name,
+           a.type as account_type,
+           a.sub_type as account_sub_type,
+           s.amount,
+           s.tags
+    from cleansing_sources s
+    left outer join public.account a on a.name = s.account_name
+    where raw_id in (3, 4, 5, 480) -- category ilike '전월이월>%'
+)
+
+select *
+from eligible_equities
+;
+
+-- (1) insert into transaction
+insert into public.transaction (transaction_date, merchant, description, payment_method, tags, is_waste, income_raw_id)
+select entry_date as transaction_date,
+       '장부 시작 기초 잔액' as merchant,
+       account_name || ' 시작 금액' as description,
+       null as payment_method,
+       tags,
+       false as is_waste,
+       raw_id as income_raw_id
+from tmp_eligible_equities
+;
+
+-- (2) insert into ledger_entry
+with journal_entry_bases as (
+    select tx.id as transaction_id,
+           ee.account_id,
+           null::integer as category_id,
+           ee.amount
+    from public.transaction tx
+    inner join tmp_eligible_equities ee on ee.raw_id = tx.income_raw_id
+)
+
+insert into public.ledger_entry (transaction_id, account_id, category_id, amount, entry_type)
+select transaction_id,
+       account_id,
+       null::integer as category_id,
+       amount as amount,
+       'ASSET' as entry_type
+from journal_entry_bases
+union all
+select transaction_id,
+       (select id from public.account where type = 'EQUITY'), -- 기초자본 (EQUITY) Account ID
+       null,
+       -amount,
+       'EQUITY'
+from journal_entry_bases
+;
+
+commit;
