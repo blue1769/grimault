@@ -88,11 +88,19 @@ select type, parent_name, sub_name, is_active
 from final;
 
 -- ==========================================================================
--- `transaction` + `ledger_entry`: journalize general expenses (#1)
+-- `transaction` + `ledger_entry`
 -- ==========================================================================
--- add raw_id bridge column for migration tracking
-alter table public.transaction add column if not exists raw_id int;
+-- add income and outgo raw_id bridge column for migration tracking
+alter table public.transaction add column if not exists outgo_raw_id int;
+alter table public.transaction add column if not exists income_raw_id int;
 
+-- [!WARNING] drop migration key after service release and delta migration
+-- alter table public.transaction drop column if exists outgo_raw_id;
+-- alter table public.transaction drop column if exists income_raw_id;
+
+-- ==========================================================================
+-- #1. journalize general expenses
+-- ==========================================================================
 begin;
 
 create temp table tmp_eligible_expenses on commit drop as
@@ -109,8 +117,7 @@ with cleansing_source as (
            is_waste,
            case when bank_account is not null and card_name is not null then card_name end as payment_method
     from stage.outgo_curated
-)
-, eligible_expenses as (
+), eligible_expenses as (
     select s.raw_id,
            s.entry_date,
            a.id as account_id,
@@ -133,17 +140,19 @@ with cleansing_source as (
     where s.parent_category not in ('이체/대체', '카드대금')
 )
 
-select * from eligible_expenses;
+select *
+from eligible_expenses
+;
 
 -- (1) insert into transaction
-insert into public.transaction (transaction_date, merchant, description, payment_method, tags, is_waste, raw_id)
+insert into public.transaction (transaction_date, merchant, description, payment_method, tags, is_waste, outgo_raw_id)
 select entry_date as transaction_date,
        merchant,
        description,
        payment_method,
        tags,
        is_waste,
-       raw_id
+       raw_id as outgo_raw_id
 from tmp_eligible_expenses
 ;
 
@@ -155,7 +164,7 @@ with journal_entry_bases as (
            ee.amount,
            ee.account_type as entry_type
     from public.transaction tx
-    inner join tmp_eligible_expenses ee on ee.raw_id = tx.raw_id
+    inner join tmp_eligible_expenses ee on ee.raw_id = tx.outgo_raw_id
 )
 
 insert into public.ledger_entry (transaction_id, account_id, category_id, amount, entry_type)
@@ -175,6 +184,3 @@ from journal_entry_bases
 ;
 
 commit;
-
--- [!WARNING] drop migration key after service release and delta migration
--- alter table public.transaction drop column if exists raw_id;
