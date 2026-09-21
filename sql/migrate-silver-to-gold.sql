@@ -184,3 +184,85 @@ from journal_entry_bases
 ;
 
 commit;
+
+-- ==========================================================================
+-- #2. journalize general incomes
+-- ==========================================================================
+begin;
+
+create temp table tmp_eligible_incomes on commit drop as
+with cleansing_sources as (
+    select raw_id,
+           entry_date,
+           coalesce(nullif(trim(description), ''), '수입') as description,
+           amount,
+           deposit_account as account_name,
+           split_part(category, '>', 1) as parent_category,
+           split_part(category, '>', 2) as sub_category,
+           tags
+    from stage.income_curated
+), eligible_incomes as (
+    select s.raw_id,
+           s.entry_date,
+           a.id as account_id,
+           a.name as account_name,
+           a.type as account_type,
+           a.sub_type as account_sub_type,
+           s.amount,
+           s.description,
+           c.id as category_id,
+           c.type as category_type,
+           c.parent_name as category_parent_name,
+           c.sub_name as category_sub_name,
+           s.tags
+    from cleansing_sources s
+    left outer join public.account a on a.name = s.account_name
+    left outer join public.category c on c.type = 'INCOME' and c.parent_name = s.parent_category and c.sub_name = s.sub_category
+    where s.parent_category != '전월이월'
+    and s.sub_category != '환불'
+    and s.raw_id not in (767, 816, 832, 840, 852, 853, 865, 873, 884, 889, 891, 903, 913, 924, 928, 942, 958) -- 선불 자산 자금 이동 대상 17건
+)
+
+select *
+from eligible_incomes
+;
+
+-- (1) insert into transaction
+insert into public.transaction (transaction_date, merchant, description, payment_method, tags, is_waste, income_raw_id)
+select entry_date as transaction_date,
+       description as merchant,
+       description,
+       null as payment_method,
+       tags,
+       false as is_waste,
+       raw_id as income_raw_id
+from tmp_eligible_incomes
+;
+
+-- (2) insert into ledger_entry
+with journal_entry_bases as (
+    select tx.id as transaction_id,
+           ei.account_id,
+           ei.category_id,
+           ei.amount
+    from public.transaction tx
+    inner join tmp_eligible_incomes ei on ei.raw_id = tx.income_raw_id
+)
+
+insert into public.ledger_entry (transaction_id, account_id, category_id, amount, entry_type)
+select transaction_id,
+       account_id,
+       null as category_id,
+       amount as amount,
+       'ASSET' as entry_type
+from journal_entry_bases
+union all
+select transaction_id,
+       null,
+       category_id,
+       -amount,
+       'REVENUE'
+from journal_entry_bases
+;
+
+commit;
