@@ -14,15 +14,16 @@ CREATE TABLE public.account (
     CONSTRAINT ck_account_type CHECK (
         (type = 'LIABILITY' AND sub_type = 'LOAN' AND settlement_day IS NULL) OR
         (type = 'LIABILITY' AND sub_type = 'CREDIT_CARD' AND settlement_day BETWEEN 1 AND 31) OR
-        (type = 'ASSET' AND sub_type IN ('CASH', 'BANK', 'PREPAID') AND settlement_day IS NULL)
+        (type = 'ASSET' AND sub_type IN ('CASH', 'BANK', 'PREPAID') AND settlement_day IS NULL) OR
+        (type = 'EQUITY' AND sub_type IN ('CAPITAL') AND settlement_day IS NULL)
     )
 );
 
 COMMENT ON TABLE public.account IS '금융 계정 마스터 (통장, 신용카드, 현금 지갑, 선불머니 등 잔액 주체)';
 COMMENT ON COLUMN public.account.id IS '계정 고유 식별자 (PK)';
 COMMENT ON COLUMN public.account.name IS '계정 고유 명칭 (예: 신한은행, 현대카드 제로, 네이버머니 등)';
-COMMENT ON COLUMN public.account.type IS '회계 대분류 (ASSET: 자산, LIABILITY: 부채)';
-COMMENT ON COLUMN public.account.sub_type IS '실사용 세부 성격 (BANK: 은행통장, CASH: 현금, PREPAID: 선불충전금, CREDIT_CARD: 신용카드, LOAN: 대출/차입금)';
+COMMENT ON COLUMN public.account.type IS '회계 대분류 (ASSET: 자산, LIABILITY: 부채, EQUITY: 기초자본)';
+COMMENT ON COLUMN public.account.sub_type IS '실사용 세부 성격 (BANK: 은행통장, CASH: 현금, PREPAID: 선불충전금, CREDIT_CARD: 신용카드, LOAN: 대출/차입금, CAPITAL: 기초자본)';
 COMMENT ON COLUMN public.account.settlement_day IS '신용카드 결제일 (1~31, 신용카드 전용 메타데이터)';
 COMMENT ON COLUMN public.account.is_active IS '신규 거래 작성 시 계정 활성화 여부 (true: 현재 유효 계정, false: 과거 해지 계정)';
 COMMENT ON COLUMN public.account.created_at IS '계정 등록 시스템 일시';
@@ -88,4 +89,4 @@ COMMENT ON COLUMN public.ledger_entry.transaction_id IS '연계 거래 헤더 �
 COMMENT ON COLUMN public.ledger_entry.account_id IS '변동 대상 금융 계정 식별자 (자산/부채 변동 시 필수, FK)';
 COMMENT ON COLUMN public.ledger_entry.category_id IS '손익 인식 대상 카테고리 식별자 (수입/지출 손익 인식 시 매핑, FK)';
 COMMENT ON COLUMN public.ledger_entry.amount IS '거래 금액 (부호형: 증가는 양수(+), 감소는 음수(-))';
-COMMENT ON COLUMN public.ledger_entry.entry_type IS '분개 속성 구분 (ASSET: 자산, LIABILITY: 부채, EXPENSE: 비용, REVENUE: 수익)';
+COMMENT ON COLUMN public.ledger_entry.entry_type IS '분개 속성 구분 (ASSET: 자산, LIABILITY: 부채, EXPENSE: 비용, REVENUE: 수익, EQUITY: 기초자본)';

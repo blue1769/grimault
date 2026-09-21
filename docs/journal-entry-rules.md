@@ -94,7 +94,7 @@
   | **Line No.** | **`account_id`** | **`category_id`** | **`amount`** |
   |---|---|---|---|
   | 1 | 신한은행 | `null` | +100,382 |
-  | 2 | `null` | `null` | -100,382 |
+  | 2 | 기초자본 | `null` | -100,382 |
 
 > [!IMPORTANT]
-> `ledger_entry.category_id` = `null` → (대시보드 등) 집계 시 카테고리 IS NOT NULL 필터를 활용, 기초 잔액이 당월 소득에 포함되지 않도록 유의
+> `public.account`에 기초자본 계정 편입 (type = `EQUITY`)
