@@ -355,3 +355,88 @@ from journal_entry_bases
 ;
 
 commit;
+
+-- ==========================================================================
+-- #3. journalize accounts-transfer transaction
+-- ==========================================================================
+begin;
+
+create temp table tmp_eligible_transfers on commit drop as
+with cleansing_source as (
+    select raw_id,
+           entry_date,
+           description,
+           coalesce(nullif(cash_amount, 0), nullif(card_amount, 0)) as amount,
+           coalesce(bank_account, card_name) as account_name,
+           split_part(category, '>', 1) as parent_category,
+           split_part(category, '>', 2) as sub_category,
+           tags,
+           is_waste
+    from stage.outgo_curated
+), eligible_transfers as (
+    select s.raw_id,
+           s.entry_date,
+           sa.id as source_account_id,
+           sa.name as source_account_name,
+           sa.type as source_account_type,
+           sa.sub_type as source_account_sub_type,
+           s.amount,
+           s.sub_category as merchant, -- 거래 대상 (Counterparty)
+           s.description,
+           ta.id as target_account_id,
+           ta.name as target_account_name,
+           ta.type as target_account_type,
+           ta.sub_type as target_account_sub_type,
+           s.tags,
+           s.is_waste
+    from cleansing_source s
+    left outer join public.account sa on sa.name = s.account_name
+    left outer join public.account ta on ta.name = s.sub_category
+    where s.parent_category in ('이체/대체', '카드대금')
+)
+
+select *
+from eligible_transfers
+;
+
+-- (1) insert into transaction
+insert into public.transaction (transaction_date, merchant, description, payment_method, tags, is_waste, outgo_raw_id)
+select entry_date as transaction_date,
+       merchant,
+       description,
+       null as payment_method,
+       tags,
+       is_waste,
+       raw_id as outgo_raw_id
+from tmp_eligible_transfers
+;
+
+-- (2) insert into ledger_entry
+with journal_entry_bases as (
+    select tx.id as transaction_id,
+           et.source_account_id,
+           et.source_account_type,
+           et.target_account_id,
+           et.target_account_type,
+           et.amount
+    from public.transaction tx
+    inner join tmp_eligible_transfers et on et.raw_id = tx.outgo_raw_id
+)
+
+insert into public.ledger_entry (transaction_id, account_id, category_id, amount, entry_type)
+select transaction_id,
+       source_account_id as account_id,
+       null::integer as category_id,
+       -amount as amount,
+       source_account_type as entry_type
+from journal_entry_bases
+union all
+select transaction_id,
+       target_account_id,
+       null,
+       amount,
+       target_account_type
+from journal_entry_bases
+;
+
+commit;
