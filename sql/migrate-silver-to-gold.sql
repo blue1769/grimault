@@ -266,3 +266,92 @@ from journal_entry_bases
 ;
 
 commit;
+
+-- ==========================================================================
+-- #2-1. journalize refunded transaction
+-- ==========================================================================
+-- add target merchant and category columns refunded transaction
+alter table stage.income_curated
+    add column if not exists target_merchant varchar(100),
+    add column if not exists target_category varchar(100)
+;
+
+begin;
+
+create temp table tmp_eligible_refunds on commit drop as
+with cleansing_sources as (
+    select raw_id,
+           entry_date,
+           target_merchant as merchant,
+           description,
+           amount,
+           deposit_account as account_name,
+           split_part(target_category, '>', 1) as parent_category,
+           split_part(target_category, '>', 2) as sub_category,
+           tags
+    from stage.income_curated
+    where category = '부수입>환불'
+    and raw_id != 622 -- 주수입>급여 오등록 내역 1건 (forced)
+), eligible_refunds as (
+    select s.raw_id,
+           s.entry_date,
+           a.id as account_id,
+           a.name as account_name,
+           a.type as account_type,
+           a.sub_type as account_sub_type,
+           s.amount,
+           s.merchant,
+           s.description,
+           c.id as category_id,
+           c.type as category_type,
+           c.parent_name as category_parent_name,
+           c.sub_name as category_sub_name,
+           s.tags
+    from cleansing_sources s
+    left outer join public.account a on a.name = s.account_name
+    left outer join public.category c on c.type = 'EXPENSE' and c.parent_name = s.parent_category and c.sub_name = s.sub_category
+)
+
+select *
+from eligible_refunds
+;
+
+-- (1) insert into transaction
+insert into public.transaction (transaction_date, merchant, description, payment_method, tags, is_waste, income_raw_id)
+select entry_date as transaction_date,
+       merchant,
+       description,
+       null as payment_method,
+       tags,
+       false as is_waste,
+       raw_id as income_raw_id
+from tmp_eligible_refunds
+;
+
+-- (2) insert into ledger_entry
+with journal_entry_bases as (
+    select tx.id as transaction_id,
+           er.account_id,
+           er.category_id,
+           er.amount
+    from public.transaction tx
+    inner join tmp_eligible_refunds er on er.raw_id = tx.income_raw_id
+)
+
+insert into public.ledger_entry (transaction_id, account_id, category_id, amount, entry_type)
+select transaction_id,
+       account_id,
+       null as category_id,
+       amount,
+       'ASSET' as entry_type
+from journal_entry_bases
+union all
+select transaction_id,
+       null,
+       category_id,
+       -amount,
+       'EXPENSE'
+from journal_entry_bases
+;
+
+commit;
