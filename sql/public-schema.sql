@@ -90,3 +90,26 @@ COMMENT ON COLUMN public.ledger_entry.account_id IS '변동 대상 금융 계정
 COMMENT ON COLUMN public.ledger_entry.category_id IS '손익 인식 대상 카테고리 식별자 (수입/지출 손익 인식 시 매핑, FK)';
 COMMENT ON COLUMN public.ledger_entry.amount IS '거래 금액 (부호형: 증가는 양수(+), 감소는 음수(-))';
 COMMENT ON COLUMN public.ledger_entry.entry_type IS '분개 속성 구분 (ASSET: 자산, LIABILITY: 부채, EXPENSE: 비용, REVENUE: 수익, EQUITY: 기초자본)';
+
+-- =============================================================================
+-- 5. 성능 및 정합성 인덱스 (Performance & Foreign Key Indexes)
+-- =============================================================================
+
+-- 1. 가계부 타임라인 조회 (최신순 페이징/범위 조회 최적화)
+CREATE INDEX IF NOT EXISTS idx_transaction_date_id
+    ON public.transaction (transaction_date DESC, id DESC);
+
+-- 2. 외래키 역참조 및 헤더-분개 조인 커버링 (CASCADE 삭제 및 1:N 조인 필수)
+CREATE INDEX IF NOT EXISTS idx_ledger_entry_tx_id
+    ON public.ledger_entry (transaction_id);
+
+-- 3. 계정별 원장/누적 잔액(Running Balance) 조회 최적화 (Composite Index)
+CREATE INDEX IF NOT EXISTS idx_ledger_entry_account_id
+    ON public.ledger_entry (account_id, id DESC)
+    WHERE account_id IS NOT NULL;
+
+-- 4. 카테고리별 지출/수입 손익 통계 집계 최적화
+CREATE INDEX IF NOT EXISTS idx_ledger_entry_category
+    ON public.ledger_entry (category_id)
+    INCLUDE (amount)
+    WHERE category_id IS NOT NULL;
