@@ -11,12 +11,7 @@ class GlobalExceptionHandler {
     @ExceptionHandler(NotImplementedError::class)
     fun handleNotImplementError(error: NotImplementedError): ResponseEntity<ErrorResponse> {
         val status = HttpStatus.NOT_IMPLEMENTED
-
-        val body = ErrorResponse(
-            status = status.value(),
-            code = status.name,
-            message = error.message ?: "Not yet implemented"
-        )
+        val body = ErrorResponse.of(status, error.message)
 
         return ResponseEntity(body, status)
     }
