@@ -31,4 +31,11 @@ class Transaction(
 
     @Column(name = "created_at")
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
+
+    @OneToMany(
+        mappedBy = "transaction",
+        cascade = [CascadeType.ALL],
+        orphanRemoval = true
+    )
+    val entries: MutableList<LedgerEntry> = mutableListOf(),
 )
