@@ -13,19 +13,6 @@ class AccountService(
     fun findAll(): List<AccountResponse> {
         return repository
             .findAll()
-            .map {
-                val verifiedId = requireNotNull(it.id) {
-                    "Account id must not be null"
-                }
-
-                AccountResponse(
-                    id = verifiedId,
-                    name = it.name,
-                    type = it.type,
-                    subType = it.subType,
-                    settlementDay = it.settlementDay,
-                    isActive = it.isActive
-                )
-            }
+            .map { AccountResponse.from(it) }
     }
 }
