@@ -22,6 +22,13 @@ spring:
       hibernate:
         format_sql: true
 
+springdoc:
+  api-docs:
+    path: /api-docs
+
+  swagger-ui:
+    path: /swagger-ui
+
 logging:
   level:
     root: INFO
