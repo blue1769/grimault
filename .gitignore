@@ -127,6 +127,6 @@ gradle-app.setting
 *.tsv
 *.xls
 *.xlsx
-.env
+*.env
 .idea/
 *.iml

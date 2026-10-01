@@ -1,0 +1,23 @@
+name: grimault-api
+
+version: '3.8'
+
+services:
+  grimault-api:
+    container_name: grimault-api
+    image: grimault-api:latest
+    build: .
+    ports:
+      - "9771:8080"
+    environment:
+      - "DB_HOST=${DB_HOST}"
+      - "DB_USERNAME=${DB_USERNAME}"
+      - "DB_PASSWORD=${DB_PASSWORD}"
+      - "TZ=Asia/Seoul"
+    restart: unless-stopped
+    networks:
+      - grimault-network
+
+networks:
+  grimault-network:
+    external: true
