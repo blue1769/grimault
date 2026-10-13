@@ -1,7 +1,13 @@
 -- =============================================================================
 -- master seeds for `account`
 -- =============================================================================
-with unioned_account_sources as (
+with credit_card_metadata_seed (name, issuer, settlement_day, start_month_offset, start_day, end_month_offset, end_day) as (
+    values
+        ('휘닉스', 'BC', 20, -1,  6,  0,  5),
+        ('생활의지혜', 'SHINHAN', 20, -1,  7,  0,  6),
+        ('1Q Daily+', 'HANA', 5, -2, 23, -1, 22),
+        ('Deep Dream', 'SHINHAN', 20, -1,  7,  0,  6)
+), unioned_account_sources as (
     select coalesce(bank_account, card_name) as name,
            case when bank_account is not null and card_name is not null then card_name end as payment_detail -- 추후 거래 내역 분개 작성 시 참조
     from stage.outgo_curated
@@ -10,43 +16,51 @@ with unioned_account_sources as (
     from stage.income_curated
     union all
     select distinct trim(split_part(category, '>', 2)) as name,
-           null as payment_detail
+                    null as payment_detail
     from stage.outgo_curated
     where category ilike '이체/대체>%'
 ), deduped_accounts as (
     select distinct name
     from unioned_account_sources
 ), eligible_accounts as (
-    select name,
+    select da.name,
            case
-            when name in ('전세대출(가양)', '전세대출(성남)', '휘닉스', '생활의지혜', '1Q Daily+', 'Deep Dream', '휘닉스-M') then 'LIABILITY'
-            else 'ASSET'
-           end as type,
+               when da.name in ('전세대출(가양)', '전세대출(성남)', '휘닉스', '생활의지혜', '1Q Daily+', 'Deep Dream') then 'LIABILITY'
+               else 'ASSET'
+               end as type,
            case
-            when name in ('지갑') then 'CASH'
-            when name in ('우리은행', '국민은행', '하나주택청약', '카카오뱅크', '신한은행', '기업은행', '언제든적금', '전세금') then 'BANK'
-            when name in ('식권', '복지카드', '쿠페이머니', '파스쿠치카드', '긴급재난지원금', '보그헤어(선납)', '스타벅스(App)') then 'PREPAID'
-            when name in ('전세대출(가양)', '전세대출(성남)') then 'LOAN'
-            when name in ('휘닉스', '생활의지혜', '1Q Daily+', 'Deep Dream', '휘닉스-M') then 'CREDIT_CARD'
-           end as sub_type,
+               when da.name in ('지갑') then 'CASH'
+               when da.name in ('우리은행', '국민은행', '하나주택청약', '카카오뱅크', '신한은행', '기업은행', '언제든적금', '전세금') then 'BANK'
+               when da.name in ('식권', '복지카드', '쿠페이머니', '파스쿠치카드', '긴급재난지원금', '보그헤어(선납)', '스타벅스(App)') then 'PREPAID'
+               when da.name in ('전세대출(가양)', '전세대출(성남)') then 'LOAN'
+               when da.name in ('휘닉스', '생활의지혜', '1Q Daily+', 'Deep Dream') then 'CREDIT_CARD'
+               end as sub_type,
            case
-            when name in ('1Q Daily+') then 5
-            when name in ('휘닉스', '생활의지혜', 'Deep Dream', '휘닉스-M') then 20
-           end as settlement_day,
+               when da.name in ('휘닉스', '생활의지혜', '1Q Daily+', 'Deep Dream') then jsonb_build_object(
+                   'issuer', s.issuer,
+                   'settlementDay', s.settlement_day,
+                   'billingPeriod', jsonb_build_object(
+                           'startMonthOffset', s.start_month_offset,
+                           'startDay', s.start_day,
+                           'endMonthOffset', s.end_month_offset,
+                           'endDay', s.end_day
+                    )
+           ) end as credit_card_metadata,
            case
-            when name in ('신한은행', '지갑', '쿠페이머니', '스타벅스(App)', 'Deep Dream', '1Q Daily+') then true
-            else false
-           end as is_active
-    from deduped_accounts
-    where name is not null and name not in ('-', '어머니')
+               when da.name in ('신한은행', '지갑', '쿠페이머니', '스타벅스(App)', 'Deep Dream', '1Q Daily+') then true
+               else false
+               end as is_active
+    from deduped_accounts da
+    left outer join credit_card_metadata_seed s on s.name = da.name
+    where da.name is not null and da.name not in ('-', '어머니')
 ), final as (
     select *
     from eligible_accounts
     order by type, sub_type, name
 )
 
-insert into public.account (name, type, sub_type, settlement_day, is_active)
-select name, type, sub_type, settlement_day, is_active
+insert into public.account (name, type, sub_type, credit_card_metadata, is_active)
+select name, type, sub_type, credit_card_metadata, is_active
 from final
 ;
 
