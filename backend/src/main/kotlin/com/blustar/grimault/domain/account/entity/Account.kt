@@ -1,6 +1,8 @@
 package com.blustar.grimault.domain.account.entity
 
 import jakarta.persistence.*
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
 import java.time.OffsetDateTime
 
 @Entity
@@ -21,8 +23,9 @@ class Account(
     @Enumerated(EnumType.STRING)
     val subType: AccountSubType,
 
-    @Column(name = "settlement_day")
-    val settlementDay: Short? = null,
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "credit_card_metadata")
+    val creditCardMetadata: CreditCardMetadata? = null,
 
     @Column(name = "is_active")
     val isActive: Boolean = true,

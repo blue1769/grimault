@@ -18,7 +18,7 @@ data class AccountResponse(
     val subType: AccountSubType,
 
     @Schema(description = "신용카드 대금 결제일 (1-31, 신용카드 전용)", example = "20")
-    val settlementDay: Short?,
+    val settlementDay: Int?,
 
     @get:Schema(description = "계정 실사용 여부")
     @get:JsonProperty("isActive")
@@ -35,7 +35,7 @@ data class AccountResponse(
                 name = account.name,
                 type = account.type,
                 subType = account.subType,
-                settlementDay = account.settlementDay,
+                settlementDay = account.creditCardMetadata?.settlementDay,
                 isActive = account.isActive
             )
         }
