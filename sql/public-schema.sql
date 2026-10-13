@@ -6,7 +6,6 @@ CREATE TABLE public.account (
     name VARCHAR(50) NOT NULL UNIQUE,
     type VARCHAR(20) NOT NULL,
     sub_type VARCHAR(20) NOT NULL,
-    settlement_day SMALLINT NULL, -- Todo: will be deprecated
     credit_card_metadata JSONB NULL,
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
