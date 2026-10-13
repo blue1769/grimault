@@ -17,6 +17,12 @@ data class AccountResponse(
     @Schema(description = "계정 세부 분류 (BANK: 은행, CASH: 현금, PREPAID: 선불/페이머니, CREDIT_CARD: 신용카드, LOAN: 대출, CAPITAL: 기초자본)")
     val subType: AccountSubType,
 
+    @Schema(description = "신용카드 회사 이름", example = "비씨")
+    val issuer: String?,
+
+    @Schema(description = "신용카드 이용 기간", example = "전월 7일 ~ 당월 6일")
+    val billingPeriodLabel: String?,
+
     @Schema(description = "신용카드 대금 결제일 (1-31, 신용카드 전용)", example = "20")
     val settlementDay: Int?,
 
@@ -35,6 +41,8 @@ data class AccountResponse(
                 name = account.name,
                 type = account.type,
                 subType = account.subType,
+                issuer = account.creditCardMetadata?.issuer?.displayName,
+                billingPeriodLabel = account.creditCardMetadata?.billingPeriod?.toDisplayLabel(),
                 settlementDay = account.creditCardMetadata?.settlementDay,
                 isActive = account.isActive
             )
