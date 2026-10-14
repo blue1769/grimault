@@ -10,9 +10,18 @@ import org.springframework.transaction.annotation.Transactional
 class AccountService(
     private val repository: AccountRepository
 ) {
-    fun findAll(): List<AccountResponse> {
-        return repository
-            .findAll()
+
+    fun findAll(
+        isActive: Boolean? = null
+    ): List<AccountResponse> {
+        val accounts = if (isActive != null) {
+            repository.findAllByIsActive(isActive)
+        } else {
+            repository.findAll()
+        }
+
+        return accounts
             .map { AccountResponse.from(it) }
     }
+
 }
