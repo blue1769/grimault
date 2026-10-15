@@ -16,6 +16,7 @@ class GlobalExceptionHandler {
         return ResponseEntity(body, status)
     }
 
+    @ExceptionHandler(GrimaultException::class)
     fun handleGrimaultException(error: GrimaultException): ResponseEntity<ErrorResponse> {
         val errorCode = error.errorCode
         val body = ErrorResponse.of(errorCode, error.message)
