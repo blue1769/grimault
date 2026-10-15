@@ -3,6 +3,7 @@ package com.blustar.grimault.domain.account.repository
 import com.blustar.grimault.domain.account.entity.Account
 import com.blustar.grimault.domain.account.entity.AccountSubType
 import com.blustar.grimault.domain.account.repository.specification.AccountSpecifications
+import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Repository
 
@@ -20,7 +21,13 @@ class AccountQueryRepository(
             AccountSpecifications.subTypesIn(subTypes),
         )
 
-        return repository.findAll(specification)
+        val sort = Sort.by(
+            Sort.Direction.ASC,
+            "name",
+            "id",
+        )
+
+        return repository.findAll(specification, sort)
     }
 
 }
