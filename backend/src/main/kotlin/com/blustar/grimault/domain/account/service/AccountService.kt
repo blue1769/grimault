@@ -25,7 +25,7 @@ class AccountService(
 
     private fun parseSubTypes(kinds: List<String>?): List<AccountSubType> {
         val subTypes = kinds?.map {
-            AccountSubType.fromName(it.trim())
+            AccountSubType.fromNameOrNull(it.trim())
                 ?: throw GrimaultException(ErrorCode.INVALID_ACCOUNT_KIND, "Invalid account kind: $it")
         }
 

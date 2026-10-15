@@ -10,7 +10,7 @@ enum class AccountSubType {
     ;
 
     companion object {
-        fun fromName(name: String): AccountSubType? =
+        fun fromNameOrNull(name: String): AccountSubType? =
             entries.firstOrNull { it.name.equals(name, true) }
     }
 
