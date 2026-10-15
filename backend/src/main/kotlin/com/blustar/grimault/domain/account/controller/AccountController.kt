@@ -20,9 +20,10 @@ class AccountController(
     @Operation(summary = "전체 금융 계정 목록 조회")
     @GetMapping
     fun findAll(
-        @Parameter(description = "활성 상태: 미지정 시 전체 조회") @RequestParam(required = false) isActive: Boolean?
+        @Parameter(description = "활성 상태: 미지정 시 전체 조회") @RequestParam(required = false) isActive: Boolean?,
+        @Parameter(description = "계정 속성: 미지정 시 전체 조회") @RequestParam(required = false) kinds: List<String>?,
     ): List<AccountResponse> {
-        return service.findAll(isActive)
+        return service.findAll(isActive, kinds)
     }
 
 }

@@ -7,4 +7,11 @@ enum class AccountSubType {
     CREDIT_CARD,
     LOAN,
     CAPITAL,
+    ;
+
+    companion object {
+        fun fromName(name: String): AccountSubType? =
+            entries.firstOrNull { it.name.equals(name, true) }
+    }
+
 }
