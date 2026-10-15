@@ -1,9 +1,17 @@
 -- =============================================================================
+-- 0. 공통 문자열 정렬 규칙 (collation)
+-- =============================================================================
+CREATE COLLATION IF NOT EXISTS ko_kr_latin_first (
+    provider = icu,
+    locale = 'ko-KR-u-kr-latn-hang-hani'
+);
+
+-- =============================================================================
 -- 1. 금융 계정 마스터 (account)
 -- =============================================================================
 CREATE TABLE public.account (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(50) COLLATE ko_kr_latin_first NOT NULL UNIQUE,
     type VARCHAR(20) NOT NULL,
     sub_type VARCHAR(20) NOT NULL,
     credit_card_metadata JSONB NULL,
@@ -26,8 +34,8 @@ COMMENT ON COLUMN public.account.created_at IS '계정 등록 시스템 일시';
 CREATE TABLE public.category (
     id SERIAL PRIMARY KEY,
     type VARCHAR(20) NOT NULL,
-    parent_name VARCHAR(50) NOT NULL,
-    sub_name VARCHAR(50) NOT NULL,
+    parent_name VARCHAR(50) COLLATE ko_kr_latin_first NOT NULL,
+    sub_name VARCHAR(50) COLLATE ko_kr_latin_first NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT true,
     CONSTRAINT uq_category UNIQUE (type, parent_name, sub_name)
 );
