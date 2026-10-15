@@ -16,4 +16,11 @@ class GlobalExceptionHandler {
         return ResponseEntity(body, status)
     }
 
+    fun handleGrimaultException(error: GrimaultException): ResponseEntity<ErrorResponse> {
+        val errorCode = error.errorCode
+        val body = ErrorResponse.of(errorCode, error.message)
+
+        return ResponseEntity(body, errorCode.status)
+    }
+
 }

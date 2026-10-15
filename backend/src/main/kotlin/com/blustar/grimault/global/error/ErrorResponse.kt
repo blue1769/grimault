@@ -11,13 +11,23 @@ data class ErrorResponse(
 ) {
 
     companion object {
+
         fun of(status: HttpStatus, message: String?): ErrorResponse {
             return ErrorResponse(
                 status = status.value(),
                 code = status.name,
-                message = message ?: status.reasonPhrase
+                message = message ?: status.reasonPhrase,
             )
         }
+
+        fun of(errorCode: ErrorCode, message: String?): ErrorResponse {
+            return ErrorResponse(
+                status = errorCode.status.value(),
+                code = errorCode.name,
+                message = message ?: errorCode.message,
+            )
+        }
+
     }
 
 }
