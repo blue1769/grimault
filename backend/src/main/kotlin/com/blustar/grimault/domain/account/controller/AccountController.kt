@@ -1,10 +1,12 @@
 package com.blustar.grimault.domain.account.controller
 
 import com.blustar.grimault.domain.account.dto.AccountResponse
+import com.blustar.grimault.domain.account.dto.CreateAccountRequest
 import com.blustar.grimault.domain.account.service.AccountService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
+import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.*
 
 @Tag(name = "Account", description = "금융 계정 관리")
@@ -27,6 +29,13 @@ class AccountController(
     @GetMapping("/{id}")
     fun findById(@PathVariable id: Int): AccountResponse {
         return service.findById(id)
+    }
+
+    @PostMapping
+    fun create(
+        @Valid @RequestBody request: CreateAccountRequest,
+    ) {
+        TODO("Not yet implemented")
     }
 
 }

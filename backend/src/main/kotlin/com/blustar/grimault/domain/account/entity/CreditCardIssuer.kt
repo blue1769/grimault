@@ -6,4 +6,11 @@ enum class CreditCardIssuer(
     SHINHAN("신한"),
     HANA("하나"),
     BC("비씨"),
+    ;
+
+    companion object {
+        fun fromNameOrNull(name: String): CreditCardIssuer? =
+            entries.firstOrNull { it.name.equals(name, true) }
+    }
+
 }
