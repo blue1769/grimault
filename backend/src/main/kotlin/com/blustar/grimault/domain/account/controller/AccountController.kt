@@ -5,10 +5,7 @@ import com.blustar.grimault.domain.account.service.AccountService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.bind.annotation.*
 
 @Tag(name = "Account", description = "금융 계정 관리")
 @RestController
@@ -24,6 +21,12 @@ class AccountController(
         @Parameter(description = "계정 속성: 미지정 시 전체 조회") @RequestParam(required = false) kinds: List<String>?,
     ): List<AccountResponse> {
         return service.findAll(isActive, kinds)
+    }
+
+    @Operation(summary = "단일 금융 계정 조회")
+    @GetMapping("/{id}")
+    fun findById(@PathVariable id: Int): AccountResponse {
+        return service.findById(id)
     }
 
 }
