@@ -4,9 +4,18 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException::class)
+    fun handleMethodArgumentTypeMismatchException(error: MethodArgumentTypeMismatchException): ResponseEntity<ErrorResponse> {
+        val status = HttpStatus.BAD_REQUEST
+        val body = ErrorResponse.of(status, "Invalid value for parameter: ${error.name}")
+
+        return ResponseEntity(body, status)
+    }
 
     @ExceptionHandler(NotImplementedError::class)
     fun handleNotImplementError(error: NotImplementedError): ResponseEntity<ErrorResponse> {
