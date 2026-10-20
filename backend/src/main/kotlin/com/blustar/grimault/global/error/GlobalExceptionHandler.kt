@@ -2,6 +2,7 @@ package com.blustar.grimault.global.error
 
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -14,6 +15,14 @@ class GlobalExceptionHandler {
     fun handleMethodArgumentTypeMismatchException(error: MethodArgumentTypeMismatchException): ResponseEntity<ErrorResponse> {
         val status = HttpStatus.BAD_REQUEST
         val body = ErrorResponse.of(status, "Invalid value for parameter: ${error.name}")
+
+        return ResponseEntity(body, status)
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException::class)
+    fun handleHttpMessageNotReadableException(error: HttpMessageNotReadableException): ResponseEntity<ErrorResponse> {
+        val status = HttpStatus.BAD_REQUEST
+        val body = ErrorResponse.of(status, "Invalid request body")
 
         return ResponseEntity(body, status)
     }
@@ -32,20 +41,20 @@ class GlobalExceptionHandler {
         return ResponseEntity(body, status)
     }
 
-    @ExceptionHandler(NotImplementedError::class)
-    fun handleNotImplementError(error: NotImplementedError): ResponseEntity<ErrorResponse> {
-        val status = HttpStatus.NOT_IMPLEMENTED
-        val body = ErrorResponse.of(status, error.message)
-
-        return ResponseEntity(body, status)
-    }
-
     @ExceptionHandler(GrimaultException::class)
     fun handleGrimaultException(error: GrimaultException): ResponseEntity<ErrorResponse> {
         val errorCode = error.errorCode
         val body = ErrorResponse.of(errorCode, error.message)
 
         return ResponseEntity(body, errorCode.status)
+    }
+
+    @ExceptionHandler(NotImplementedError::class)
+    fun handleNotImplementError(error: NotImplementedError): ResponseEntity<ErrorResponse> {
+        val status = HttpStatus.NOT_IMPLEMENTED
+        val body = ErrorResponse.of(status, error.message)
+
+        return ResponseEntity(body, status)
     }
 
 }
