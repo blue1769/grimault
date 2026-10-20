@@ -1,5 +1,6 @@
 package com.blustar.grimault.domain.account.dto
 
+import com.blustar.grimault.domain.account.entity.*
 import com.blustar.grimault.domain.account.validation.ValidCreateAccountRequest
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.Max
@@ -41,4 +42,40 @@ data class CreateAccountRequest(
     @field:Min(1)
     @field:Max(31)
     val endDay: Int? = null,
-)
+) {
+
+    fun toEntity(): Account = Account(
+        name = name,
+        type = requireNotNull(AccountType.fromNameOrNull(type)),
+        subType = requireNotNull(AccountSubType.fromNameOrNull(subtype)),
+        creditCardMetadata = creditCardMetadata(),
+        isActive = true,
+    )
+
+    private fun creditCardMetadata(): CreditCardMetadata? {
+        val subtype = requireNotNull(AccountSubType.fromNameOrNull(subtype))
+
+        if (subtype != AccountSubType.CREDIT_CARD) {
+            return null
+        }
+
+        val issuer = requireNotNull(CreditCardIssuer.fromNameOrNull(issuer))
+        val settlementDay = requireNotNull(settlementDay)
+        val startMonthOffset = requireNotNull(startMonthOffset)
+        val startDay = requireNotNull(startDay)
+        val endMonthOffset = requireNotNull(endMonthOffset)
+        val endDay = requireNotNull(endDay)
+
+        return CreditCardMetadata(
+            issuer = issuer,
+            settlementDay = settlementDay,
+            billingPeriod = CreditCardBillingPeriod(
+                startMonthOffset = startMonthOffset,
+                startDay = startDay,
+                endMonthOffset = endMonthOffset,
+                endDay = endDay,
+            )
+        )
+    }
+
+}

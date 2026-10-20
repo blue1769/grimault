@@ -9,7 +9,7 @@ enum class CreditCardIssuer(
     ;
 
     companion object {
-        fun fromNameOrNull(name: String): CreditCardIssuer? =
+        fun fromNameOrNull(name: String?): CreditCardIssuer? =
             entries.firstOrNull { it.name.equals(name, true) }
     }
 
