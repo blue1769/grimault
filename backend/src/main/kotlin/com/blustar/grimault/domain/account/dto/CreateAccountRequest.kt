@@ -47,15 +47,15 @@ data class CreateAccountRequest(
     fun toEntity(): Account = Account(
         name = name,
         type = requireNotNull(AccountType.fromNameOrNull(type)),
-        subType = requireNotNull(AccountSubType.fromNameOrNull(subtype)),
+        subtype = requireNotNull(AccountSubtype.fromNameOrNull(subtype)),
         creditCardMetadata = creditCardMetadata(),
         isActive = true,
     )
 
     private fun creditCardMetadata(): CreditCardMetadata? {
-        val subtype = requireNotNull(AccountSubType.fromNameOrNull(subtype))
+        val subtype = requireNotNull(AccountSubtype.fromNameOrNull(subtype))
 
-        if (subtype != AccountSubType.CREDIT_CARD) {
+        if (subtype != AccountSubtype.CREDIT_CARD) {
             return null
         }
 

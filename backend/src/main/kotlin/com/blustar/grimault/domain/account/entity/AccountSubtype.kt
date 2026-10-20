@@ -1,6 +1,6 @@
 package com.blustar.grimault.domain.account.entity
 
-enum class AccountSubType {
+enum class AccountSubtype {
     BANK,
     CASH,
     PREPAID,
@@ -10,7 +10,7 @@ enum class AccountSubType {
     ;
 
     companion object {
-        fun fromNameOrNull(name: String): AccountSubType? =
+        fun fromNameOrNull(name: String): AccountSubtype? =
             entries.firstOrNull { it.name.equals(name, true) }
     }
 

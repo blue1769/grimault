@@ -16,7 +16,7 @@ TRUNCATE TABLE public.ledger_entry, public.transaction, public.category, public.
     RESTART IDENTITY;
 
 -- ID-stable account fixtures. CREDIT_CARD jsonb mirrors Kotlin CreditCardMetadata.
-INSERT INTO public.account (id, name, type, sub_type, credit_card_metadata, is_active, created_at) VALUES
+INSERT INTO public.account (id, name, type, subtype, credit_card_metadata, is_active, created_at) VALUES
     (1, '개발_주거래통장', 'ASSET', 'BANK', NULL, true, '2026-01-01 00:00:00+09'),
     (2, '개발_생활비통장', 'ASSET', 'BANK', NULL, true, '2026-01-01 00:00:00+09'),
     (3, '개발_비상금통장', 'ASSET', 'BANK', NULL, true, '2026-01-01 00:00:00+09'),

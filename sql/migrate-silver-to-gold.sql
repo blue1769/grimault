@@ -34,7 +34,7 @@ with credit_card_metadata_seed (name, issuer, settlement_day, start_month_offset
                when da.name in ('식권', '복지카드', '쿠페이머니', '파스쿠치카드', '긴급재난지원금', '보그헤어(선납)', '스타벅스(App)') then 'PREPAID'
                when da.name in ('전세대출(가양)', '전세대출(성남)') then 'LOAN'
                when da.name in ('휘닉스', '생활의지혜', '1Q Daily+', 'Deep Dream') then 'CREDIT_CARD'
-               end as sub_type,
+               end as subtype,
            case
                when da.name in ('휘닉스', '생활의지혜', '1Q Daily+', 'Deep Dream') then jsonb_build_object(
                    'issuer', s.issuer,
@@ -56,11 +56,11 @@ with credit_card_metadata_seed (name, issuer, settlement_day, start_month_offset
 ), final as (
     select *
     from eligible_accounts
-    order by type, sub_type, name
+    order by type, subtype, name
 )
 
-insert into public.account (name, type, sub_type, credit_card_metadata, is_active)
-select name, type, sub_type, credit_card_metadata, is_active
+insert into public.account (name, type, subtype, credit_card_metadata, is_active)
+select name, type, subtype, credit_card_metadata, is_active
 from final
 ;
 
@@ -137,7 +137,7 @@ with cleansing_source as (
            a.id as account_id,
            a.name as account_name,
            a.type as account_type,
-           a.sub_type as account_sub_type,
+           a.subtype as account_subtype,
            s.payment_method,
            s.amount,
            s.merchant,
@@ -221,7 +221,7 @@ with cleansing_sources as (
            a.id as account_id,
            a.name as account_name,
            a.type as account_type,
-           a.sub_type as account_sub_type,
+           a.subtype as account_subtype,
            s.amount,
            s.description,
            c.id as category_id,
@@ -312,7 +312,7 @@ with cleansing_sources as (
            a.id as account_id,
            a.name as account_name,
            a.type as account_type,
-           a.sub_type as account_sub_type,
+           a.subtype as account_subtype,
            s.amount,
            s.merchant,
            s.description,
@@ -393,14 +393,14 @@ with cleansing_source as (
            sa.id as source_account_id,
            sa.name as source_account_name,
            sa.type as source_account_type,
-           sa.sub_type as source_account_sub_type,
+           sa.subtype as source_account_subtype,
            s.amount,
            s.sub_category as merchant, -- 거래 대상 (Counterparty)
            s.description,
            ta.id as target_account_id,
            ta.name as target_account_name,
            ta.type as target_account_type,
-           ta.sub_type as target_account_sub_type,
+           ta.subtype as target_account_subtype,
            s.tags,
            s.is_waste
     from cleansing_source s
@@ -474,7 +474,7 @@ with cleansing_sources as (
            a.id as account_id,
            a.name as account_name,
            a.type as account_type,
-           a.sub_type as account_sub_type,
+           a.subtype as account_subtype,
            s.amount,
            s.tags
     from cleansing_sources s

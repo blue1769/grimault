@@ -1,7 +1,7 @@
 package com.blustar.grimault.domain.account.service
 
 import com.blustar.grimault.domain.account.dto.AccountResponse
-import com.blustar.grimault.domain.account.entity.AccountSubType
+import com.blustar.grimault.domain.account.entity.AccountSubtype
 import com.blustar.grimault.domain.account.repository.AccountQueryRepository
 import com.blustar.grimault.domain.account.repository.AccountRepository
 import com.blustar.grimault.global.error.ErrorCode
@@ -22,7 +22,7 @@ class AccountService(
         kinds: List<String>? = null,
     ): List<AccountResponse> {
         return queryRepository
-            .findAll(isActive, parseSubTypes(kinds))
+            .findAll(isActive, parseSubtypes(kinds))
             .map { AccountResponse.from(it) }
     }
 
@@ -33,13 +33,13 @@ class AccountService(
         return AccountResponse.from(account)
     }
 
-    private fun parseSubTypes(kinds: List<String>?): List<AccountSubType> {
-        val subTypes = kinds?.map {
-            AccountSubType.fromNameOrNull(it.trim())
+    private fun parseSubtypes(kinds: List<String>?): List<AccountSubtype> {
+        val subtypes = kinds?.map {
+            AccountSubtype.fromNameOrNull(it.trim())
                 ?: throw GrimaultException(ErrorCode.INVALID_ACCOUNT_KIND, "Invalid account kind: $it")
         }
 
-        return subTypes
+        return subtypes
             ?: emptyList()
     }
 

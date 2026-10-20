@@ -13,7 +13,7 @@ CREATE TABLE public.account (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) COLLATE ko_kr_latin_first NOT NULL UNIQUE,
     type VARCHAR(20) NOT NULL,
-    sub_type VARCHAR(20) NOT NULL,
+    subtype VARCHAR(20) NOT NULL,
     credit_card_metadata JSONB NULL,
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -23,7 +23,7 @@ COMMENT ON TABLE public.account IS '금융 계정 마스터 (통장, 신용카�
 COMMENT ON COLUMN public.account.id IS '계정 고유 식별자 (PK)';
 COMMENT ON COLUMN public.account.name IS '계정 고유 명칭 (예: 신한은행, 현대카드 제로, 네이버머니 등)';
 COMMENT ON COLUMN public.account.type IS '회계 대분류 (ASSET: 자산, LIABILITY: 부채, EQUITY: 기초자본)';
-COMMENT ON COLUMN public.account.sub_type IS '실사용 세부 성격 (BANK: 은행통장, CASH: 현금, PREPAID: 선불충전금, CREDIT_CARD: 신용카드, LOAN: 대출/차입금, CAPITAL: 기초자본)';
+COMMENT ON COLUMN public.account.subtype IS '실사용 세부 성격 (BANK: 은행통장, CASH: 현금, PREPAID: 선불충전금, CREDIT_CARD: 신용카드, LOAN: 대출/차입금, CAPITAL: 기초자본)';
 COMMENT ON COLUMN public.account.credit_card_metadata IS '신용카드 전용 메타데이터 (카드사, 결제일, 이용기간 등; CREDIT_CARD 외 계정은 NULL)';
 COMMENT ON COLUMN public.account.is_active IS '신규 거래 작성 시 계정 활성화 여부 (true: 현재 유효 계정, false: 과거 해지 계정)';
 COMMENT ON COLUMN public.account.created_at IS '계정 등록 시스템 일시';

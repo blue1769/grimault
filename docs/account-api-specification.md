@@ -24,18 +24,18 @@
 
 ### 2.1 분류 체계
 
-Account는 `type`과 `subType`을 가진다.
+Account는 `type`과 `subtype`을 가진다.
 
 - `type`: 회계적 대분류
-- `subType`: 해당 대분류에 종속되는 세부 분류
+- `subtype`: 해당 대분류에 종속되는 세부 분류
 
-`subType`은 항상 하나의 `type`에만 속하며, `subType`이 결정되면 `type`도 단일하게 결정된다.
+`subtype`은 항상 하나의 `type`에만 속하며, `subtype`이 결정되면 `type`도 단일하게 결정된다.
 
 즉 다음 관계는 Account 도메인의 invariant로 취급한다.
 
-> `AccountSubType -> AccountType`
+> `AccountSubtype -> AccountType`
 
-단, `subType` 필터가 `type` 필터의 모든 조회 의미를 대체한다는 뜻은 아니다.  
+단, `subtype` 필터가 `type` 필터의 모든 조회 의미를 대체한다는 뜻은 아니다.  
 현재 요구사항에서는 상위 `type` 기준 조회가 필요하지 않으므로 별도 `type` 필터를 제공하지 않는다.
 
 ### 2.2 생명주기
@@ -97,7 +97,7 @@ GET /accounts?isActive=true
 
 ### 4.2 계정 속성 필터
 
-세부 분류 기준 필터의 외부 API 명칭은 `subType` 대신 `kinds`를 사용한다.
+세부 분류 기준 필터의 외부 API 명칭은 `subtype` 대신 `kinds`를 사용한다.
 
 ```text
 GET /accounts?kinds=BANK,CASH,PREPAID
@@ -165,19 +165,19 @@ ORDER BY name ASC, id ASC
 
 - `name`
 - `type`
-- `subType`
+- `subtype`
 
 필수 정보가 누락되면 요청을 실패 처리한다.
 
 ### 6.2 분류 정합성
 
-`type`과 `subType`은 정의된 종속 관계를 만족해야 한다.
+`type`과 `subtype`은 정의된 종속 관계를 만족해야 한다.
 
-예를 들어 특정 `subType`이 속하지 않는 `type`과 조합되어 요청되면 정합성 오류로 처리한다.
+예를 들어 특정 `subtype`이 속하지 않는 `type`과 조합되어 요청되면 정합성 오류로 처리한다.
 
 ### 6.3 신용카드
 
-`subType = CREDIT_CARD`인 경우 `creditCardMetadata`는 필수다.
+`subtype = CREDIT_CARD`인 경우 `creditCardMetadata`는 필수다.
 
 신용카드 등록 요청에 메타데이터가 포함되지 않으면 요청을 실패 처리한다.
 
@@ -197,12 +197,12 @@ Account의 모든 속성을 자유롭게 수정할 수 있도록 하지 않는�
 | --- | --- |
 | `name` | 가능 |
 | `type` | 불가 |
-| `subType` | 불가 |
+| `subtype` | 불가 |
 | `creditCardMetadata.issuer` | 불가 |
 | `creditCardMetadata.settlementDay` | 가능 |
 | `creditCardMetadata.billingPeriod` | 가능 |
 
-`type`과 `subType`은 Account의 정체성에 해당하는 값으로 보고 생성 이후 변경하지 않는다.
+`type`과 `subtype`은 Account의 정체성에 해당하는 값으로 보고 생성 이후 변경하지 않는다.
 
 신용카드의 `issuer` 역시 현재 모델에서 계정의 고정적인 식별 정보에 가깝게 취급하므로 변경하지 않는다.
 

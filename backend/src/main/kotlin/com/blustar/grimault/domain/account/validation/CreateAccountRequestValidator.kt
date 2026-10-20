@@ -1,8 +1,8 @@
 package com.blustar.grimault.domain.account.validation
 
 import com.blustar.grimault.domain.account.dto.CreateAccountRequest
-import com.blustar.grimault.domain.account.entity.AccountSubType
-import com.blustar.grimault.domain.account.entity.AccountSubType.*
+import com.blustar.grimault.domain.account.entity.AccountSubtype
+import com.blustar.grimault.domain.account.entity.AccountSubtype.*
 import com.blustar.grimault.domain.account.entity.AccountType
 import com.blustar.grimault.domain.account.entity.AccountType.*
 import com.blustar.grimault.domain.account.entity.CreditCardIssuer
@@ -24,14 +24,14 @@ class CreateAccountRequestValidator :
         val type = AccountType.fromNameOrNull(request.type.trim())
             ?: return invalid(context, "Invalid account kind")
 
-        val subType = AccountSubType.fromNameOrNull(request.subtype.trim())
+        val subtype = AccountSubtype.fromNameOrNull(request.subtype.trim())
             ?: return invalid(context, "Invalid account kind")
 
-        if (!validateTypeDependencies(type, subType)) {
+        if (!validateTypeDependencies(type, subtype)) {
             return invalid(context, "Invalid account kind")
         }
 
-        if (subType == CREDIT_CARD) {
+        if (subtype == CREDIT_CARD) {
             return validateCreditCardMetadata(request, context)
         }
 
@@ -51,12 +51,12 @@ class CreateAccountRequestValidator :
 
     private fun validateTypeDependencies(
         type: AccountType,
-        subType: AccountSubType,
+        subtype: AccountSubtype,
     ): Boolean {
         return when (type) {
-            ASSET -> subType in setOf(BANK, CASH, PREPAID)
-            LIABILITY -> subType in setOf(CREDIT_CARD, LOAN)
-            EQUITY -> subType in setOf(CAPITAL)
+            ASSET -> subtype in setOf(BANK, CASH, PREPAID)
+            LIABILITY -> subtype in setOf(CREDIT_CARD, LOAN)
+            EQUITY -> subtype in setOf(CAPITAL)
         }
     }
 

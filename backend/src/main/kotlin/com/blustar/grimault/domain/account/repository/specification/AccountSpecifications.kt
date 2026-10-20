@@ -1,7 +1,7 @@
 package com.blustar.grimault.domain.account.repository.specification
 
 import com.blustar.grimault.domain.account.entity.Account
-import com.blustar.grimault.domain.account.entity.AccountSubType
+import com.blustar.grimault.domain.account.entity.AccountSubtype
 import org.springframework.data.jpa.domain.Specification
 
 object AccountSpecifications {
@@ -18,12 +18,12 @@ object AccountSpecifications {
             }
         }
 
-    fun subTypesIn(subTypes: List<AccountSubType>): Specification<Account> =
+    fun subtypesIn(subtypes: List<AccountSubtype>): Specification<Account> =
         Specification { root, _, criteriaBuilder ->
-            if (subTypes.isEmpty()) {
+            if (subtypes.isEmpty()) {
                 criteriaBuilder.conjunction()
             } else {
-                root.get<AccountSubType>("subType").`in`(subTypes)
+                root.get<AccountSubtype>("subtype").`in`(subtypes)
             }
         }
 

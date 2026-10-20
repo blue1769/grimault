@@ -1,7 +1,7 @@
 package com.blustar.grimault.domain.account.dto
 
 import com.blustar.grimault.domain.account.entity.Account
-import com.blustar.grimault.domain.account.entity.AccountSubType
+import com.blustar.grimault.domain.account.entity.AccountSubtype
 import com.blustar.grimault.domain.account.entity.AccountType
 import com.fasterxml.jackson.annotation.JsonProperty
 import io.swagger.v3.oas.annotations.media.Schema
@@ -15,7 +15,7 @@ data class AccountResponse(
     val type: AccountType,
 
     @Schema(description = "계정 세부 분류 (BANK: 은행, CASH: 현금, PREPAID: 선불/페이머니, CREDIT_CARD: 신용카드, LOAN: 대출, CAPITAL: 기초자본)")
-    val subType: AccountSubType,
+    val subtype: AccountSubtype,
 
     @Schema(description = "신용카드 회사 이름", example = "비씨")
     val issuer: String?,
@@ -40,7 +40,7 @@ data class AccountResponse(
                 id = verifiedId,
                 name = account.name,
                 type = account.type,
-                subType = account.subType,
+                subtype = account.subtype,
                 issuer = account.creditCardMetadata?.issuer?.displayName,
                 billingPeriodLabel = account.creditCardMetadata?.billingPeriod?.toDisplayLabel(),
                 settlementDay = account.creditCardMetadata?.settlementDay,

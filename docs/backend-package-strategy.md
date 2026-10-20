@@ -39,7 +39,7 @@ com.blustar.grimault
 │   │   ├── entity
 │   │   │   ├── Account.kt
 │   │   │   ├── AccountType.kt          # Enum (ASSET, LIABILITY, EQUITY)
-│   │   │   └── AccountSubType.kt       # Enum (BANK, CASH, PREPAID, CREDIT_CARD)
+│   │   │   └── AccountSubtype.kt       # Enum (BANK, CASH, PREPAID, CREDIT_CARD)
 │   │   ├── repository
 │   │   │   └── AccountRepository.kt
 │   │   └── service                     # 비즈니스 로직

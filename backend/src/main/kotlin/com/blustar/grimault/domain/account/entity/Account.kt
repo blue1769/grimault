@@ -19,9 +19,9 @@ class Account(
     @Enumerated(EnumType.STRING)
     val type: AccountType,
 
-    @Column(name = "sub_type")
+    @Column(name = "subtype")
     @Enumerated(EnumType.STRING)
-    val subType: AccountSubType,
+    val subtype: AccountSubtype,
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "credit_card_metadata")

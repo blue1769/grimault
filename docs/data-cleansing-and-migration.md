@@ -52,7 +52,7 @@
 1. 금융 계정 `public.account` 등록
 - 전체 지출/수입 이력에서 등장한 고유 계정 31개를 추출 및 적재 (`raw.outgo`, `raw.income`)
 - 현재 실사용 중인 계정에 `is_active = true`, 나머지는 `is_active = false`
-- 각 계정별 자산 유형 (`type`, `sub_type`) 및 (신용카드) 결제일 (`settlement_day`) 매핑
+- 각 계정별 자산 유형 (`type`, `subtype`) 및 (신용카드) 결제일 (`settlement_day`) 매핑
 
 2. 분류 카테고리 `public.category` 등록
 - 원본 데이터 상 2단계 분류 전체를 고유 값으로 추출 및 적재 (`parent_name`, `sub_name`)
