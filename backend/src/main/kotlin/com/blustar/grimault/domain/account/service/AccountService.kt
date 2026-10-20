@@ -1,6 +1,7 @@
 package com.blustar.grimault.domain.account.service
 
 import com.blustar.grimault.domain.account.dto.AccountResponse
+import com.blustar.grimault.domain.account.dto.CreateAccountRequest
 import com.blustar.grimault.domain.account.entity.AccountSubtype
 import com.blustar.grimault.domain.account.repository.AccountQueryRepository
 import com.blustar.grimault.domain.account.repository.AccountRepository
@@ -29,6 +30,13 @@ class AccountService(
     fun findById(id: Int): AccountResponse {
         val account = repository.findByIdOrNull(id)
             ?: throw GrimaultException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found: $id")
+
+        return AccountResponse.from(account)
+    }
+
+    @Transactional
+    fun create(body: CreateAccountRequest): AccountResponse {
+        val account = repository.save(body.toEntity())
 
         return AccountResponse.from(account)
     }

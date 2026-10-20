@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 
 @Tag(name = "Account", description = "금융 계정 관리")
@@ -32,10 +33,11 @@ class AccountController(
     }
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     fun create(
-        @Valid @RequestBody request: CreateAccountRequest,
-    ) {
-        TODO("Not yet implemented")
+        @Valid @RequestBody body: CreateAccountRequest,
+    ): AccountResponse {
+        return service.create(body)
     }
 
 }
