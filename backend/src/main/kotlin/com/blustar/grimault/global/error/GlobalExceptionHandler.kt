@@ -1,5 +1,7 @@
 package com.blustar.grimault.global.error
 
+import org.hibernate.exception.ConstraintViolationException
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
@@ -35,6 +37,24 @@ class GlobalExceptionHandler {
             .firstOrNull()
             ?.defaultMessage
             ?: "Invalid request body"
+
+        val body = ErrorResponse.of(status, message)
+
+        return ResponseEntity(body, status)
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException::class)
+    fun handleDataIntegrityViolationException(error: DataIntegrityViolationException): ResponseEntity<ErrorResponse> {
+        val constraintViolation = generateSequence(error as Throwable?) { it.cause }
+            .filterIsInstance<ConstraintViolationException>()
+            .firstOrNull()
+
+        val constraintName = constraintViolation?.constraintName
+
+        val (status, message) = when (constraintName) {
+            "account_name_key" -> HttpStatus.CONFLICT to "Account name already exists"
+            else -> HttpStatus.INTERNAL_SERVER_ERROR to "Data integrity violation (constraint: ${constraintName ?: "unknown"})"
+        }
 
         val body = ErrorResponse.of(status, message)
 
