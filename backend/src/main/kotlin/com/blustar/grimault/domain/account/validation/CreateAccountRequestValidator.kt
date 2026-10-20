@@ -12,6 +12,7 @@ import jakarta.validation.ConstraintValidatorContext
 class CreateAccountRequestValidator :
     ConstraintValidator<ValidCreateAccountRequest, CreateAccountRequest> {
 
+    @Suppress("RedundantIf")
     override fun isValid(
         request: CreateAccountRequest?,
         context: ConstraintValidatorContext,
@@ -32,6 +33,17 @@ class CreateAccountRequestValidator :
 
         if (subType == CREDIT_CARD) {
             return validateCreditCardMetadata(request, context)
+        }
+
+        val hasAnyCreditCardMetadata: Boolean = request.issuer != null ||
+                request.settlementDay != null ||
+                request.startMonthOffset != null ||
+                request.startDay != null ||
+                request.endMonthOffset != null ||
+                request.endDay != null
+
+        if (hasAnyCreditCardMetadata) {
+            return invalid(context, "Unexpected credit card metadata")
         }
 
         return true
