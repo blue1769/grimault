@@ -12,8 +12,7 @@ class Account(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Int? = null,
 
-    @Column(name = "name")
-    val name: String,
+    name: String,
 
     @Column(name = "type")
     @Enumerated(EnumType.STRING)
@@ -23,13 +22,41 @@ class Account(
     @Enumerated(EnumType.STRING)
     val subtype: AccountSubtype,
 
-    @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "credit_card_metadata")
-    val creditCardMetadata: CreditCardMetadata? = null,
+    creditCardMetadata: CreditCardMetadata? = null,
 
-    @Column(name = "is_active")
-    val isActive: Boolean = true,
+    isActive: Boolean = true,
 
     @Column(name = "created_at")
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
-)
+) {
+
+    @Column(name = "name")
+    final var name: String = name
+        private set
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "credit_card_metadata")
+    final var creditCardMetadata: CreditCardMetadata? = creditCardMetadata
+        private set
+
+    @Column(name = "is_active")
+    final var isActive: Boolean = isActive
+        private set
+
+    fun rename(newName: String) {
+        name = newName
+    }
+
+    fun updateCreditCardDetails(
+        settlementDay: Int?,
+        billingPeriod: CreditCardBillingPeriod?,
+    ) {
+        val current = requireNotNull(creditCardMetadata)
+
+        creditCardMetadata = current.copy(
+            settlementDay = settlementDay ?: current.settlementDay,
+            billingPeriod = billingPeriod ?: current.billingPeriod,
+        )
+    }
+
+}
