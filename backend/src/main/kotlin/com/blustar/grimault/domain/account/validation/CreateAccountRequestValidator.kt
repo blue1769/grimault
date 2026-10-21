@@ -21,6 +21,10 @@ class CreateAccountRequestValidator :
             return true
         }
 
+        if (request.name.isBlank()) {
+            return invalid(context, "Account name must not be blank")
+        }
+
         val type = AccountType.fromNameOrNull(request.type.trim())
             ?: return invalid(context, "Invalid account kind")
 

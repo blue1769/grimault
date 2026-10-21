@@ -15,6 +15,10 @@ class UpdateAccountRequestValidator :
             return true
         }
 
+        if (request.name != null && request.name.isBlank()) {
+            return invalid(context, "Account name must not be blank")
+        }
+
         if (!hasUpdateFields(request)) {
             return invalid(context, "No fields to update")
         }

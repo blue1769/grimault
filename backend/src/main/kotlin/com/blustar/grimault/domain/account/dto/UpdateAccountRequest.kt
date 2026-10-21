@@ -9,8 +9,6 @@ import jakarta.validation.constraints.Size
 @Schema(description = "금융 계정 변경 요청")
 @ValidUpdateAccountRequest
 data class UpdateAccountRequest(
-
-    // FIXME: reject blank-only account names in create requests as well
     @field:Size(max = 50)
     val name: String? = null,
 
