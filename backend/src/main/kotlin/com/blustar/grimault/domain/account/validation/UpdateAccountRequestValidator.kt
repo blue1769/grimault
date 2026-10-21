@@ -19,7 +19,7 @@ class UpdateAccountRequestValidator :
             return invalid(context, "Account name must not be blank")
         }
 
-        if (!hasUpdateFields(request)) {
+        if (request.hasNoUpdateFields) {
             return invalid(context, "No fields to update")
         }
 
@@ -31,38 +31,12 @@ class UpdateAccountRequestValidator :
     }
 
     @Suppress("RedundantIf")
-    private fun hasUpdateFields(request: UpdateAccountRequest): Boolean {
-        val hasNoUpdateFields = request.name == null &&
-                request.settlementDay == null &&
-                request.startMonthOffset == null &&
-                request.startDay == null &&
-                request.endMonthOffset == null &&
-                request.endDay == null
-
-        if (hasNoUpdateFields) {
-            return false
-        }
-
-        return true
-    }
-
-    @Suppress("RedundantIf")
     private fun hasValidBillingPeriod(request: UpdateAccountRequest): Boolean {
-        val hasNoBillingPeriod = request.startMonthOffset == null &&
-                request.startDay == null &&
-                request.endMonthOffset == null &&
-                request.endDay == null
-
-        val hasCompleteBillingPeriod = request.startMonthOffset != null &&
-                request.startDay != null &&
-                request.endMonthOffset != null &&
-                request.endDay != null
-
-        if (hasNoBillingPeriod) {
+        if (request.hasNoBillingPeriod) {
             return true
         }
 
-        if (hasCompleteBillingPeriod) {
+        if (request.hasCompleteBillingPeriod) {
             return true
         }
 

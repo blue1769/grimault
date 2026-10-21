@@ -31,4 +31,23 @@ data class UpdateAccountRequest(
     @field:Min(1)
     @field:Max(31)
     val endDay: Int? = null,
-)
+) {
+
+    val hasNoUpdateFields = name == null &&
+            settlementDay == null &&
+            startMonthOffset == null &&
+            startDay == null &&
+            endMonthOffset == null &&
+            endDay == null
+
+    val hasNoBillingPeriod = startMonthOffset == null &&
+            startDay == null &&
+            endMonthOffset == null &&
+            endDay == null
+
+    val hasCompleteBillingPeriod = startMonthOffset != null &&
+            startDay != null &&
+            endMonthOffset != null &&
+            endDay != null
+
+}
