@@ -87,6 +87,16 @@ class AccountService(
         return AccountResponse.from(account)
     }
 
+    @Transactional
+    fun changeActiveStatus(id: Int, active: Boolean): AccountResponse {
+        val account = repository.findByIdOrNull(id)
+            ?: throw GrimaultException(ErrorCode.ACCOUNT_NOT_FOUND, "Account not found: $id")
+
+        if (active) account.activate() else account.deactivate()
+
+        return AccountResponse.from(account)
+    }
+
     private fun parseSubtypes(kinds: List<String>?): List<AccountSubtype> {
         val subtypes = kinds?.map {
             AccountSubtype.fromNameOrNull(it.trim())

@@ -59,4 +59,12 @@ class Account(
         )
     }
 
+    fun activate() {
+        isActive = true
+    }
+
+    fun deactivate() {
+        isActive = false
+    }
+
 }
