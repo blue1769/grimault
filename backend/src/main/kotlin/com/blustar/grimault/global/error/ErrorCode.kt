@@ -10,6 +10,8 @@ enum class ErrorCode(
 ) {
 
     ACCOUNT_NOT_FOUND(NOT_FOUND, "Account not found"),
+    INACTIVE_ACCOUNT_UPDATE(BAD_REQUEST, "Inactive account update"),
     INVALID_ACCOUNT_KIND(BAD_REQUEST, "Invalid account kind"),
+    INVALID_ACCOUNT_UPDATE(BAD_REQUEST, "Invalid account update"),
 
 }

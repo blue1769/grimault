@@ -2,6 +2,7 @@ package com.blustar.grimault.domain.account.controller
 
 import com.blustar.grimault.domain.account.dto.AccountResponse
 import com.blustar.grimault.domain.account.dto.CreateAccountRequest
+import com.blustar.grimault.domain.account.dto.UpdateAccountRequest
 import com.blustar.grimault.domain.account.service.AccountService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
@@ -38,6 +39,14 @@ class AccountController(
         @Valid @RequestBody body: CreateAccountRequest,
     ): AccountResponse {
         return service.create(body)
+    }
+
+    @PutMapping("/{id}")
+    fun update(
+        @PathVariable id: Int,
+        @Valid @RequestBody body: UpdateAccountRequest,
+    ): AccountResponse {
+        return service.update(id, body)
     }
 
 }
