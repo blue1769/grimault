@@ -11,6 +11,7 @@ version = "0.0.1-SNAPSHOT"
 
 extra["jackson-2-bom.version"] = "2.22.3"
 extra["jackson-bom.version"] = "3.1.7"
+extra["logback.version"] = "1.6.5"
 
 java {
 	toolchain {
