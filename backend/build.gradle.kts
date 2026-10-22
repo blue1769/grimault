@@ -9,6 +9,9 @@ plugins {
 group = "com.blustar"
 version = "0.0.1-SNAPSHOT"
 
+extra["jackson-2-bom.version"] = "2.22.3"
+extra["jackson-bom.version"] = "3.1.7"
+
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(17)
@@ -23,7 +26,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
-	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0")
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("tools.jackson.module:jackson-module-kotlin")
 	runtimeOnly("org.postgresql:postgresql")
