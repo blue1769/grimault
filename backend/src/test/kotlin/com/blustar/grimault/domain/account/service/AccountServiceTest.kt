@@ -1,5 +1,6 @@
 package com.blustar.grimault.domain.account.service
 
+import com.blustar.grimault.domain.account.dto.UpdateAccountRequest
 import com.blustar.grimault.domain.account.entity.Account
 import com.blustar.grimault.domain.account.entity.AccountSubtype
 import com.blustar.grimault.domain.account.entity.AccountType
@@ -12,7 +13,9 @@ import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.util.Optional
 
@@ -35,6 +38,36 @@ class AccountServiceTest {
         // Assert
         assertEquals(ErrorCode.INVALID_ACCOUNT_KIND, exception.errorCode)
         verify(exactly = 0) { queryRepository.findAll(any(), any()) }
+    }
+
+    @Test
+    fun `비신용카드 계정의 신용카드 전용 정보 수정을 거부한다`() {
+        // Arrange
+        val account = Account(
+            id = 1,
+            name = "테스트 은행 계정",
+            type = AccountType.ASSET,
+            subtype = AccountSubtype.BANK,
+            isActive = true,
+        )
+        val createdAt = account.createdAt
+        val request = UpdateAccountRequest(settlementDay = 15)
+        every { repository.findById(1) } returns Optional.of(account)
+
+        // Act
+        val exception = assertThrows(GrimaultException::class.java) {
+            service.update(id = 1, body = request)
+        }
+
+        // Assert
+        assertEquals(ErrorCode.INVALID_ACCOUNT_UPDATE, exception.errorCode)
+        assertEquals(1, account.id)
+        assertEquals("테스트 은행 계정", account.name)
+        assertEquals(AccountType.ASSET, account.type)
+        assertEquals(AccountSubtype.BANK, account.subtype)
+        assertTrue(account.isActive)
+        assertNull(account.creditCardMetadata)
+        assertEquals(createdAt, account.createdAt)
     }
 
     @Test
