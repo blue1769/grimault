@@ -9,6 +9,7 @@ import jakarta.validation.ConstraintValidatorContext
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
 
 class CreateAccountRequestValidatorTest {
@@ -41,6 +42,44 @@ class CreateAccountRequestValidatorTest {
 
         // Assert
         assertFalse(result)
+    }
+
+    @ParameterizedTest(name = "{index}: {0}")
+    @CsvSource(
+        "시작일과 종료일이 동일함, 0, 15, 0, 15",
+        "같은 월에서 시작일이 종료일보다 늦음, 0, 20, 0, 15",
+        "시작 월이 종료 월보다 늦음, 0, 1, -1, 28",
+    )
+    fun `신용카드 청구 기간의 시작일이 종료일보다 빠르지 않으면 거부한다`(
+        caseName: String,
+        startMonthOffset: Int,
+        startDay: Int,
+        endMonthOffset: Int,
+        endDay: Int,
+    ) {
+        // Arrange
+        val request = CreateAccountRequest(
+            name = "테스트 신용카드",
+            type = "LIABILITY",
+            subtype = "CREDIT_CARD",
+            issuer = "HYUNDAI",
+            settlementDay = 15,
+            startMonthOffset = startMonthOffset,
+            startDay = startDay,
+            endMonthOffset = endMonthOffset,
+            endDay = endDay,
+        )
+        val context = mockk<ConstraintValidatorContext>()
+        val violationBuilder = mockk<ConstraintValidatorContext.ConstraintViolationBuilder>()
+        every { context.disableDefaultConstraintViolation() } just runs
+        every { context.buildConstraintViolationWithTemplate(any()) } returns violationBuilder
+        every { violationBuilder.addConstraintViolation() } returns context
+
+        // Act
+        val result = validator.isValid(request, context)
+
+        // Assert
+        assertFalse(result, caseName)
     }
 
     @Test
