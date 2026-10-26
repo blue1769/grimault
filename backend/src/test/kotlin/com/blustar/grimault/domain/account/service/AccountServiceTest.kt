@@ -4,6 +4,9 @@ import com.blustar.grimault.domain.account.dto.UpdateAccountRequest
 import com.blustar.grimault.domain.account.entity.Account
 import com.blustar.grimault.domain.account.entity.AccountSubtype
 import com.blustar.grimault.domain.account.entity.AccountType
+import com.blustar.grimault.domain.account.entity.CreditCardBillingPeriod
+import com.blustar.grimault.domain.account.entity.CreditCardIssuer
+import com.blustar.grimault.domain.account.entity.CreditCardMetadata
 import com.blustar.grimault.domain.account.repository.AccountQueryRepository
 import com.blustar.grimault.domain.account.repository.AccountRepository
 import com.blustar.grimault.global.error.ErrorCode
@@ -68,6 +71,42 @@ class AccountServiceTest {
         assertTrue(account.isActive)
         assertNull(account.creditCardMetadata)
         assertEquals(createdAt, account.createdAt)
+    }
+
+    @Test
+    fun `비활성 신용카드의 상세정보 수정을 거부한다`() {
+        // Arrange
+        val metadata = CreditCardMetadata(
+            issuer = CreditCardIssuer.SHINHAN,
+            settlementDay = 15,
+            billingPeriod = CreditCardBillingPeriod(
+                startMonthOffset = -1,
+                startDay = 1,
+                endMonthOffset = 0,
+                endDay = 15,
+            ),
+        )
+        val account = Account(
+            id = 1,
+            name = "테스트 신용카드",
+            type = AccountType.LIABILITY,
+            subtype = AccountSubtype.CREDIT_CARD,
+            isActive = false,
+            creditCardMetadata = metadata,
+        )
+        val request = UpdateAccountRequest(settlementDay = 20)
+        every { repository.findById(1) } returns Optional.of(account)
+
+        // Act
+        val exception = assertThrows(GrimaultException::class.java) {
+            service.update(id = 1, body = request)
+        }
+
+        // Assert
+        assertEquals(ErrorCode.INACTIVE_ACCOUNT_UPDATE, exception.errorCode)
+        assertEquals("테스트 신용카드", account.name)
+        assertFalse(account.isActive)
+        assertEquals(metadata, account.creditCardMetadata)
     }
 
     @Test

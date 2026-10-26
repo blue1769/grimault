@@ -21,7 +21,7 @@
     - 계정의 `type = LIABILITY`, `subtype = CREDIT_CARD`, `isActive = false`이다.
     - 계정명은 `"테스트 신용카드"`이다.
     - 초기 신용카드 메타정보:
-        - `issuer = HYUNDAI`
+        - `issuer = SHINHAN`
         - `settlementDay = 15`
         - `billingPeriod = (-1, 1) ~ (0, 15)`
     - `AccountRepository`는 해당 ID 조회 시 준비된 계정을 반환한다.
