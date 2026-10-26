@@ -33,4 +33,31 @@ class CreateAccountRequestValidatorTest {
         // Assert
         assertFalse(result)
     }
+
+    @Test
+    fun `비신용카드 계정에 신용카드 전용 메타정보가 포함되면 거부한다`() {
+        // Arrange
+        val request = CreateAccountRequest(
+            name = "테스트 은행 계정",
+            type = "ASSET",
+            subtype = "BANK",
+            issuer = "HYUNDAI",
+            settlementDay = null,
+            startMonthOffset = null,
+            startDay = null,
+            endMonthOffset = null,
+            endDay = null,
+        )
+        val context = mockk<ConstraintValidatorContext>()
+        val violationBuilder = mockk<ConstraintValidatorContext.ConstraintViolationBuilder>()
+        every { context.disableDefaultConstraintViolation() } just runs
+        every { context.buildConstraintViolationWithTemplate(any()) } returns violationBuilder
+        every { violationBuilder.addConstraintViolation() } returns context
+
+        // Act
+        val result = validator.isValid(request, context)
+
+        // Assert
+        assertFalse(result)
+    }
 }
