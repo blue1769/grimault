@@ -41,7 +41,7 @@ class AccountController(
         return service.create(body)
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     fun update(
         @PathVariable id: Int,
         @Valid @RequestBody body: UpdateAccountRequest,
@@ -49,13 +49,13 @@ class AccountController(
         return service.update(id, body)
     }
 
-    @PutMapping("/{id}/activate")
+    @PostMapping("/{id}/activate")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun activate(@PathVariable id: Int) {
         service.changeActiveStatus(id, active = true)
     }
 
-    @PutMapping("/{id}/deactivate")
+    @PostMapping("/{id}/deactivate")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun deactivate(@PathVariable id: Int) {
         service.changeActiveStatus(id, active = false)

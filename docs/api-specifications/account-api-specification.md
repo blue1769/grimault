@@ -65,9 +65,9 @@ Account는 과거 거래의 참조 대상이므로 삭제하지 않는다.
 | 전체 자산 계정 조회 | `GET /accounts` | 필터 지원 |
 | 단일 자산 계정 조회 | `GET /accounts/{id}` | 비활성 계정도 조회 가능 |
 | 신규 자산 계정 등록 | `POST /accounts` | 필수값 및 분류 정합성 검증 |
-| 자산 계정 정보 수정 | `PUT /accounts/{id}` | 수정 가능 필드 제한 |
-| 자산 계정 활성화 | `PUT /accounts/{id}/activate` | payload 없음 |
-| 자산 계정 비활성화 | `PUT /accounts/{id}/deactivate` | payload 없음 |
+| 자산 계정 정보 수정 | `PATCH /accounts/{id}` | 수정 가능 필드 제한 |
+| 자산 계정 활성화 | `POST /accounts/{id}/activate` | payload 없음 |
+| 자산 계정 비활성화 | `POST /accounts/{id}/deactivate` | payload 없음 |
 | 자산 계정 삭제 | 미지원 | 물리/논리 삭제 모두 미지원 |
 
 ---
@@ -185,7 +185,7 @@ ORDER BY name ASC, id ASC
 
 ## 7. 자산 계정 정보 수정
 
-### `PUT /accounts/{id}`
+### `PATCH /accounts/{id}`
 
 Account의 모든 속성을 자유롭게 수정할 수 있도록 하지 않는다.
 
@@ -223,13 +223,13 @@ Account의 활성 상태 변경은 일반 정보 수정 API와 분리한다.
 ### 활성화
 
 ```http
-PUT /accounts/{id}/activate
+POST /accounts/{id}/activate
 ```
 
 ### 비활성화
 
 ```http
-PUT /accounts/{id}/deactivate
+POST /accounts/{id}/deactivate
 ```
 
 두 API는 다음 규칙을 따른다.
