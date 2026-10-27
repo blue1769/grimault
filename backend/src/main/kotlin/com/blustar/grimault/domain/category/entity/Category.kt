@@ -13,12 +13,12 @@ class Category(
     @Enumerated(EnumType.STRING)
     val type: CategoryType,
 
-    @Column(name = "parent_name")
-    val parentName: String,
-
-    @Column(name = "sub_name")
-    val subName: String,
+    @Column(name = "name")
+    val name: String,
 
     @Column(name = "is_active")
     val isActive: Boolean = true,
+
+    @Column(name = "sort_order")
+    val sortOrder: Int,
 )

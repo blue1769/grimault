@@ -1,7 +1,7 @@
 package com.blustar.grimault.domain.ledger.entity
 
 import com.blustar.grimault.domain.account.entity.Account
-import com.blustar.grimault.domain.category.entity.Category
+import com.blustar.grimault.domain.category.entity.CategoryItem
 import jakarta.persistence.*
 import java.math.BigDecimal
 
@@ -21,8 +21,8 @@ class LedgerEntry(
     val account: Account?,
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    val category: Category?,
+    @JoinColumn(name = "category_item_id")
+    val categoryItem: CategoryItem?,
 
     @Column(name = "amount")
     val amount: BigDecimal,
