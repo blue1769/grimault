@@ -9,7 +9,9 @@ import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 
 @Tag(name = "Account", description = "금융 계정 관리")
 @RestController
@@ -34,11 +36,18 @@ class AccountController(
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
     fun create(
         @Valid @RequestBody body: CreateAccountRequest,
-    ): AccountResponse {
-        return service.create(body)
+    ): ResponseEntity<AccountResponse> {
+        val account = service.create(body)
+
+        val location = ServletUriComponentsBuilder
+            .fromCurrentRequest()
+            .path("/{id}")
+            .buildAndExpand(account.id)
+            .toUri()
+
+        return ResponseEntity.created(location).body(account)
     }
 
     @PatchMapping("/{id}")
