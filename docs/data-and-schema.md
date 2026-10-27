@@ -67,14 +67,24 @@
 | is_active | boolean | NOT NULL | 신규 거래 작성 시 계정 활성화 여부 (true: 현재 유효 계정, false: 과거 해지 계정) |
 | created_at | timestamp with time zone | NOT NULL | 계정 등록 시스템 일시 |
 
-### Category: 분류 카테고리
+### Category: 분류 대분류
 | **Column Name** | **Data Type** | **Nullable** | **Description** |
 | --- | --- | --- | --- |
-| id | integer | NOT NULL | 카테고리 고유 식별자 (PK) |
-| type | character varying | NOT NULL | 손익 분류 구분 (EXPENSE: 지출, INCOME: 수입) |
-| parent_name | character varying | NOT NULL | 1단계 대분류 명칭 (예: 식비, 주거/통신, 생활용품 등) |
-| sub_name | character varying | NOT NULL | 2단계 소분류 명칭 (예: 외식, 통신비, 기타 등) |
-| is_active | boolean | NOT NULL | 신규 거래 작성 UI 노출 여부 (true: 기본 노출, false: 기타 등 선택 지양 항목) |
+| id | integer | NOT NULL | 대분류 고유 식별자 (PK) |
+| type | character varying | NOT NULL | 손익 분류 구분 (EXPENSE: 지출, INCOME: 수입; 생성 후 변경 불가) |
+| name | character varying | NOT NULL | 대분류 명칭 (전체 대분류에서 중복 불가) |
+| is_active | boolean | NOT NULL | 대분류 활성 상태 (소분류 활성 상태와 독립적으로 관리) |
+| sort_order | integer | NOT NULL | 전체 대분류에서 1부터 연속되는 사용자 지정 순번 (비활성 포함) |
+
+### Category Item: 분류 소분류
+| **Column Name** | **Data Type** | **Nullable** | **Description** |
+| --- | --- | --- | --- |
+| id | integer | NOT NULL | 소분류 고유 식별자 (PK; 원장 참조 대상) |
+| category_id | integer | NOT NULL | 소속 대분류 식별자 (FK) |
+| name | character varying | NOT NULL | 소분류 명칭 (동일 대분류 안에서 중복 불가) |
+| is_active | boolean | NOT NULL | 소분류 활성 상태 (실제 선택 가능 여부는 대분류 활성 상태와 함께 판단) |
+| sort_order | integer | NOT NULL | 소속 대분류 내에서 1부터 연속되는 사용자 지정 순번 (비활성 포함) |
+| is_favorite | boolean | NOT NULL | 자주 쓰는 분류 지정 여부 (활성 상태와 독립적으로 관리) |
 
 ### Transaction: 거래 원천 헤더
 | **Column Name** | **Data Type** | **Nullable** | **Description** |
@@ -94,6 +104,6 @@
 | id | bigint | NOT NULL | 분개 라인 고유 식별자 (PK) |
 | transaction_id | bigint | NOT NULL | 연계 거래 헤더 식별자 (FK, ON DELETE CASCADE) |
 | account_id | integer | NULL | 변동 대상 금융 계정 식별자 (자산/부채 변동 시 필수, FK) |
-| category_id | integer | NULL | 손익 인식 대상 카테고리 식별자 (수입/지출 손익 인식 시 매핑, FK) |
+| category_item_id | integer | NULL | 손익 인식 대상 소분류 식별자 (수입/지출 손익 인식 시 매핑, FK) |
 | amount | numeric | NOT NULL | 거래 금액 (부호형: 증가는 양수(+), 감소는 음수(-)) |
 | entry_type | character varying | NOT NULL | 분개 속성 구분 (ASSET: 자산, LIABILITY: 부채, EXPENSE: 비용, REVENUE: 수익, EQUITY: 기초자본) |

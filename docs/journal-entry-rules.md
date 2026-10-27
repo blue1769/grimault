@@ -29,7 +29,7 @@
   - `payment_method`: 체크카드명, 현금 등 (신용카드의 경우 `null`)
 - 분개 라인 (`ledger_entry`):
 
-  | **Line No.** | **`account_id`** | **`category_id`** | **`amount`** |
+  | **Line No.** | **`account_id`** | **`category_item_id`** | **`amount`** |
   |---|---|---|---|
   | 1 | 신한은행 | `null` | -30,000 |
   | 2 | `null` | `식비>외식` | +30,000 |
@@ -45,7 +45,7 @@
   - `payment_method`: `null`
 - 분개 라인 (`ledger_entry`):
 
-  | **Line No.** | **`account_id`** | **`category_id`** | **`amount`** |
+  | **Line No.** | **`account_id`** | **`category_item_id`** | **`amount`** |
   |---|---|---|---|
   | 1 | 신한은행 | `null` | +1,000,000 |
   | 2 | `null` | `주수입>급여` | -1,000,000 |
@@ -53,7 +53,7 @@
 ### 3. 계정 간 이체 및 부채 상환 (손익 없음, 순수 잔액 이동 취급)
 ```text
 ☑️ 현금 자산 간의 이동, 카드 청구대금 출금, 전세 대출 원금 상환 등
-☑️ 지출이 아니므로 `category_id`는 `null`
+☑️ 지출이 아니므로 `category_item_id`는 `null`
 ```
 - 원천 조건: `stage.outgo_curated` 중 category ILIKE '이체/대체>%' OR '카드대금>%'
 - 거래 헤더 (`transaction`):
@@ -61,7 +61,7 @@
   - `description`: '신한카드 결제 대금 출금', '현금 인출 (신한은행 → 지갑)'
 - 분개 라인 (`ledger_entry`):
 
-  | **Line No.** | **`account_id`** | **`category_id`** | **`amount`** |
+  | **Line No.** | **`account_id`** | **`category_item_id`** | **`amount`** |
   |---|---|---|---|
   | 1 | 신한은행 | `null` | -300,000 |
   | 2 | 신한카드 | `null` | +300,000 |
@@ -76,7 +76,7 @@
   - `description`: '네이버머니 충전', '스타벅스 카드 충전'
 - 분개 라인 (`ledger_entry`):
 
-  | **Line No.** | **`account_id`** | **`category_id`** | **`amount`** |
+  | **Line No.** | **`account_id`** | **`category_item_id`** | **`amount`** |
   |---|---|---|---|
   | 1 | 신한카드 | `null` | -50,000 |
   | 2 | 스타벅스 카드 | `null` | +50,000 |
@@ -91,7 +91,7 @@
   - `description`: '신한은행 시작 금액'
 - 분개 라인 (`ledger_entry`):
 
-  | **Line No.** | **`account_id`** | **`category_id`** | **`amount`** |
+  | **Line No.** | **`account_id`** | **`category_item_id`** | **`amount`** |
   |---|---|---|---|
   | 1 | 신한은행 | `null` | +100,382 |
   | 2 | 기초자본 | `null` | -100,382 |
