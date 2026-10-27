@@ -38,7 +38,7 @@ ALTER USER grimault_dev WITH PASSWORD '<CHANGE_PASSWORD>';
 SELECT current_database(), current_user, current_schema(), tablename
 FROM pg_catalog.pg_tables
 WHERE schemaname = 'public'
-  AND tablename IN ('account', 'category', 'transaction', 'ledger_entry')
+  AND tablename IN ('account', 'category', 'category_item', 'transaction', 'ledger_entry')
 ORDER BY tablename;
 --
 -- 이후 반복 테스트에는 initialization-dev.sql을 다시 실행하지 않는다.

@@ -12,7 +12,7 @@
 
 BEGIN;
 
-TRUNCATE TABLE public.ledger_entry, public.transaction, public.category, public.account
+TRUNCATE TABLE public.ledger_entry, public.transaction, public.category, public.category_item, public.account
     RESTART IDENTITY;
 
 -- ID-stable account fixtures. CREDIT_CARD jsonb mirrors Kotlin CreditCardMetadata.
@@ -28,28 +28,44 @@ INSERT INTO public.account (id, name, type, subtype, credit_card_metadata, is_ac
     (9, '개발_소액대출', 'LIABILITY', 'LOAN', NULL, true, '2026-01-01 00:00:00+09'),
     (10, '개발_기초자본', 'EQUITY', 'CAPITAL', NULL, false, '2026-01-01 00:00:00+09');
 
--- Master categories (16 expense + 4 income; 1 inactive historical category).
-INSERT INTO public.category (id, type, parent_name, sub_name, is_active) VALUES
-    (1, 'EXPENSE', '식비', '외식', true),
-    (2, 'EXPENSE', '식비', '식료품', true),
-    (3, 'EXPENSE', '식비', '카페', true),
-    (4, 'EXPENSE', '주거/통신', '통신비', true),
-    (5, 'EXPENSE', '주거/통신', '월세', true),
-    (6, 'EXPENSE', '생활', '생필품', true),
-    (7, 'EXPENSE', '생활', '의류', true),
-    (8, 'EXPENSE', '교통', '대중교통', true),
-    (9, 'EXPENSE', '교통', '택시', true),
-    (10, 'EXPENSE', '문화', '구독', true),
-    (11, 'EXPENSE', '문화', '영화', true),
-    (12, 'EXPENSE', '건강', '병원', true),
-    (13, 'EXPENSE', '건강', '약국', true),
-    (14, 'EXPENSE', '기타', '수수료', true),
-    (15, 'EXPENSE', '기타', '기부', true),
-    (16, 'EXPENSE', '기타', '기타', false),
-    (17, 'INCOME', '급여', '월급', true),
-    (18, 'INCOME', '부수입', '프로젝트', true),
-    (19, 'INCOME', '금융', '이자', true),
-    (20, 'INCOME', '기타', '환급', true);
+-- Master categories (7 expense + 4 income groups; 20 items, 1 inactive).
+INSERT INTO public.category (id, type, name, is_active, sort_order) VALUES
+    (1, 'EXPENSE', '식비', true, 1),
+    (2, 'EXPENSE', '주거/통신', true, 2),
+    (3, 'EXPENSE', '생활', true, 3),
+    (4, 'EXPENSE', '교통', true, 4),
+    (5, 'EXPENSE', '문화', true, 5),
+    (6, 'EXPENSE', '건강', true, 6),
+    (7, 'EXPENSE', '지출/기타', true, 7),
+    (8, 'INCOME', '급여', true, 8),
+    (9, 'INCOME', '부수입', true, 9),
+    (10, 'INCOME', '금융', true, 10),
+    (11, 'INCOME', '수입/기타', true, 11);
+
+-- Category items (preserving original category IDs).
+INSERT INTO public.category_item
+    (id, category_id, name, is_active, sort_order, is_favorite)
+VALUES
+    (1, 1, '외식', true, 1, false),
+    (2, 1, '식료품', true, 2, false),
+    (3, 1, '카페', true, 3, false),
+    (4, 2, '통신비', true, 1, false),
+    (5, 2, '월세', true, 2, false),
+    (6, 3, '생필품', true, 1, false),
+    (7, 3, '의류', true, 2, false),
+    (8, 4, '대중교통', true, 1, false),
+    (9, 4, '택시', true, 2, false),
+    (10, 5, '구독', true, 1, false),
+    (11, 5, '영화', true, 2, false),
+    (12, 6, '병원', true, 1, false),
+    (13, 6, '약국', true, 2, false),
+    (14, 7, '수수료', true, 1, false),
+    (15, 7, '기부', true, 2, false),
+    (16, 7, '기타', false, 3, false),
+    (17, 8, '월급', true, 1, false),
+    (18, 9, '프로젝트', true, 1, false),
+    (19, 10, '이자', true, 1, false),
+    (20, 11, '환급', true, 1, false);
 
 -- Baseline scenarios (IDs 1..35); created_at uses a fixed timestamp plus ID minutes.
 WITH baseline (id, transaction_date, merchant, description, payment_method, tags, is_waste) AS (
@@ -97,7 +113,7 @@ SELECT id, transaction_date::date, merchant, description, payment_method, tags, 
 FROM baseline ORDER BY id;
 
 -- Baseline ledger postings: each transaction has exactly two signed legs.
-INSERT INTO public.ledger_entry (transaction_id, account_id, category_id, amount, entry_type) VALUES
+INSERT INTO public.ledger_entry (transaction_id, account_id, category_item_id, amount, entry_type) VALUES
     (1, 1, NULL, 3000000, 'ASSET'),
     (1, 10, NULL, -3000000, 'EQUITY'),
     (2, 2, NULL, 500000, 'ASSET'),
@@ -199,8 +215,8 @@ FROM weekly
 ORDER BY week_no, slot;
 
 -- Weekly posting template: week number affects transaction ID only.
-WITH weekly_legs (week_no, slot, leg_order, account_id, category_id, amount, entry_type) AS (
-    SELECT w, v.slot, v.leg_order, v.account_id, v.category_id, v.amount, v.entry_type
+WITH weekly_legs (week_no, slot, leg_order, account_id, category_item_id, amount, entry_type) AS (
+    SELECT w, v.slot, v.leg_order, v.account_id, v.category_item_id, v.amount, v.entry_type
     FROM generate_series(0, 11) AS w
     CROSS JOIN LATERAL (VALUES
     (0, 1, 2, NULL, -12500, 'ASSET'),
@@ -217,16 +233,17 @@ WITH weekly_legs (week_no, slot, leg_order, account_id, category_id, amount, ent
     (5, 2, NULL, 18, -42000, 'REVENUE'),
     (6, 1, 1, NULL, -25000, 'ASSET'),
     (6, 2, 2, NULL, 25000, 'ASSET')
-    ) AS v(slot, leg_order, account_id, category_id, amount, entry_type)
+    ) AS v(slot, leg_order, account_id, category_item_id, amount, entry_type)
 )
-INSERT INTO public.ledger_entry (transaction_id, account_id, category_id, amount, entry_type)
-SELECT 36 + 7 * week_no + slot, account_id, category_id, amount, entry_type
+INSERT INTO public.ledger_entry (transaction_id, account_id, category_item_id, amount, entry_type)
+SELECT 36 + 7 * week_no + slot, account_id, category_item_id, amount, entry_type
 FROM weekly_legs ORDER BY week_no, slot, leg_order;
 
 -- 명시적 마스터 PK 이후 API INSERT를 위한 시퀀스 재설정.
 -- ALTER SEQUENCE RESTART는 트랜잭션에서 롤백 가능하다.
 ALTER SEQUENCE public.account_id_seq RESTART WITH 11;
-ALTER SEQUENCE public.category_id_seq RESTART WITH 21;
+ALTER SEQUENCE public.category_id_seq RESTART WITH 12;
+ALTER SEQUENCE public.category_item_id_seq RESTART WITH 21;
 ALTER SEQUENCE public.transaction_id_seq RESTART WITH 120;
 -- ledger_entry ID는 적재 중 SERIAL에서 자동 발급되므로 별도 조정하지 않는다.
 

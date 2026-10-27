@@ -8,6 +8,7 @@
 SELECT
     (SELECT count(*) FROM public.account) AS account_count,
     (SELECT count(*) FROM public.category) AS category_count,
+    (SELECT count(*) FROM public.category_item) AS category_item_count,
     (SELECT count(*) FROM public.transaction) AS transaction_count,
     (SELECT count(*) FROM public.ledger_entry) AS ledger_entry_count,
     (SELECT COALESCE(sum(amount), 0) FROM public.ledger_entry) AS ledger_sum;
@@ -16,7 +17,7 @@ SELECT
 -- PASS가 1행 나오면 검출된 위반이 없다.
 -- FAIL이 나오면 해당 transaction_id / ledger_entry_id와 설명을 확인한다.
 -- 거래의 분개는 최소 2개여야 한다. 3개 이상의 분개는 허용한다.
--- '참조 누락'은 nullable account_id/category_id의 값이 모두 빠진 경우다.
+-- '참조 누락'은 nullable account_id/category_item_id의 값이 모두 빠진 경우다.
 -- 유효한 참조의 실존 여부는 기존 FK 제약이 보장한다.
 WITH transaction_summary AS (
     SELECT
@@ -52,9 +53,9 @@ violations AS (
         'MISSING_ENTRY_REFERENCE',
         e.transaction_id::bigint,
         e.id::bigint,
-        'account_id와 category_id가 모두 NULL'::text
+        'account_id와 category_item_id가 모두 NULL'::text
     FROM public.ledger_entry AS e
-    WHERE e.account_id IS NULL AND e.category_id IS NULL
+    WHERE e.account_id IS NULL AND e.category_item_id IS NULL
 
     UNION ALL
 
@@ -62,9 +63,9 @@ violations AS (
         'MULTIPLE_ENTRY_REFERENCES',
         e.transaction_id::bigint,
         e.id::bigint,
-        'account_id와 category_id가 동시에 존재'::text
+        'account_id와 category_item_id가 동시에 존재'::text
     FROM public.ledger_entry AS e
-    WHERE e.account_id IS NOT NULL AND e.category_id IS NOT NULL
+    WHERE e.account_id IS NOT NULL AND e.category_item_id IS NOT NULL
 )
 SELECT
     'FAIL'::text AS status,

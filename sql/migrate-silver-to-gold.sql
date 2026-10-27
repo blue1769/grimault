@@ -97,9 +97,26 @@ with unioned_category_sources as (
     order by type, parent_name, sub_name
 )
 
-insert into public.category (type, parent_name, sub_name, is_active)
-select type, parent_name, sub_name, is_active
-from final;
+insert into public.category (type, name, is_active, sort_order)
+select type,
+       parent_name,
+       true as is_active,
+       row_number() over (order by type, parent_name) as sort_order
+from final
+group by type, parent_name;
+
+-- [!] Warning: The final CTE must be redefined before executing this INSERT.
+-- Insert category items by matching their parent categories.
+-- Assign dense sort orders starting from 1 within each category.
+
+-- insert into public.category_item
+-- select c.id as category_id,
+--        f.sub_name as name,
+--        f.is_active,
+--        row_number() over (partition by c.id order by f.type, f.parent_name, f.sub_name) as sort_order,
+--        false as is_favorite
+-- from final f
+-- inner join public.category c on c.name = f.parent_name and c.type = f.type;
 
 -- ==========================================================================
 -- `transaction` + `ledger_entry`
@@ -142,15 +159,16 @@ with cleansing_source as (
            s.amount,
            s.merchant,
            s.description,
-           c.id as category_id,
+           i.id as category_item_id,
            c.type as category_type,
-           c.parent_name as category_parent_name,
-           c.sub_name as category_sub_name,
+           c.name as category_parent_name,
+           i.name as category_sub_name,
            s.tags,
            s.is_waste
     from cleansing_source s
     left outer join public.account a on a.name = s.account_name
-    left outer join public.category c on c.type = 'EXPENSE' and c.parent_name = s.parent_category and c.sub_name = s.sub_category
+    left outer join public.category c on c.type = 'EXPENSE' and c.name = s.parent_category
+    left outer join public.category_item i on i.category_id = c.id and i.name = s.sub_category
     where s.parent_category not in ('이체/대체', '카드대금')
 )
 
@@ -174,24 +192,24 @@ from tmp_eligible_expenses
 with journal_entry_bases as (
     select tx.id as transaction_id,
            ee.account_id,
-           ee.category_id,
+           ee.category_item_id,
            ee.amount,
            ee.account_type as entry_type
     from public.transaction tx
     inner join tmp_eligible_expenses ee on ee.raw_id = tx.outgo_raw_id
 )
 
-insert into public.ledger_entry (transaction_id, account_id, category_id, amount, entry_type)
+insert into public.ledger_entry (transaction_id, account_id, category_item_id, amount, entry_type)
 select transaction_id,
        account_id,
-       null as category_id,
+       null as category_item_id,
        -amount as amount,
        entry_type
 from journal_entry_bases
 union all
 select transaction_id,
        null,
-       category_id,
+       category_item_id,
        amount,
        'EXPENSE'
 from journal_entry_bases
@@ -224,14 +242,15 @@ with cleansing_sources as (
            a.subtype as account_subtype,
            s.amount,
            s.description,
-           c.id as category_id,
+           i.id as category_item_id,
            c.type as category_type,
-           c.parent_name as category_parent_name,
-           c.sub_name as category_sub_name,
+           c.name as category_parent_name,
+           i.name as category_sub_name,
            s.tags
     from cleansing_sources s
     left outer join public.account a on a.name = s.account_name
-    left outer join public.category c on c.type = 'INCOME' and c.parent_name = s.parent_category and c.sub_name = s.sub_category
+    left outer join public.category c on c.type = 'INCOME' and c.name = s.parent_category
+    left outer join public.category_item i on i.category_id = c.id and i.name = s.sub_category
     where s.parent_category != '전월이월'
     and s.sub_category != '환불'
     and s.raw_id not in (767, 816, 832, 840, 852, 853, 865, 873, 884, 889, 891, 903, 913, 924, 928, 942, 958) -- 선불 자산 자금 이동 대상 17건
@@ -257,23 +276,23 @@ from tmp_eligible_incomes
 with journal_entry_bases as (
     select tx.id as transaction_id,
            ei.account_id,
-           ei.category_id,
+           ei.category_item_id,
            ei.amount
     from public.transaction tx
     inner join tmp_eligible_incomes ei on ei.raw_id = tx.income_raw_id
 )
 
-insert into public.ledger_entry (transaction_id, account_id, category_id, amount, entry_type)
+insert into public.ledger_entry (transaction_id, account_id, category_item_id, amount, entry_type)
 select transaction_id,
        account_id,
-       null as category_id,
+       null as category_item_id,
        amount as amount,
        'ASSET' as entry_type
 from journal_entry_bases
 union all
 select transaction_id,
        null,
-       category_id,
+       category_item_id,
        -amount,
        'REVENUE'
 from journal_entry_bases
@@ -316,14 +335,15 @@ with cleansing_sources as (
            s.amount,
            s.merchant,
            s.description,
-           c.id as category_id,
+           i.id as category_item_id,
            c.type as category_type,
-           c.parent_name as category_parent_name,
-           c.sub_name as category_sub_name,
+           c.name as category_parent_name,
+           i.name as category_sub_name,
            s.tags
     from cleansing_sources s
     left outer join public.account a on a.name = s.account_name
-    left outer join public.category c on c.type = 'EXPENSE' and c.parent_name = s.parent_category and c.sub_name = s.sub_category
+    left outer join public.category c on c.type = 'EXPENSE' and c.name = s.parent_category
+    left outer join public.category_item i on i.category_id = c.id and i.name = s.sub_category
 )
 
 select *
@@ -346,23 +366,23 @@ from tmp_eligible_refunds
 with journal_entry_bases as (
     select tx.id as transaction_id,
            er.account_id,
-           er.category_id,
+           er.category_item_id,
            er.amount
     from public.transaction tx
     inner join tmp_eligible_refunds er on er.raw_id = tx.income_raw_id
 )
 
-insert into public.ledger_entry (transaction_id, account_id, category_id, amount, entry_type)
+insert into public.ledger_entry (transaction_id, account_id, category_item_id, amount, entry_type)
 select transaction_id,
        account_id,
-       null as category_id,
+       null as category_item_id,
        amount,
        'ASSET' as entry_type
 from journal_entry_bases
 union all
 select transaction_id,
        null,
-       category_id,
+       category_item_id,
        -amount,
        'EXPENSE'
 from journal_entry_bases
@@ -437,10 +457,10 @@ with journal_entry_bases as (
     inner join tmp_eligible_transfers et on et.raw_id = tx.outgo_raw_id
 )
 
-insert into public.ledger_entry (transaction_id, account_id, category_id, amount, entry_type)
+insert into public.ledger_entry (transaction_id, account_id, category_item_id, amount, entry_type)
 select transaction_id,
        source_account_id as account_id,
-       null::integer as category_id,
+       null::integer as category_item_id,
        -amount as amount,
        source_account_type as entry_type
 from journal_entry_bases
@@ -502,16 +522,16 @@ from tmp_eligible_equities
 with journal_entry_bases as (
     select tx.id as transaction_id,
            ee.account_id,
-           null::integer as category_id,
+           null::integer as category_item_id,
            ee.amount
     from public.transaction tx
     inner join tmp_eligible_equities ee on ee.raw_id = tx.income_raw_id
 )
 
-insert into public.ledger_entry (transaction_id, account_id, category_id, amount, entry_type)
+insert into public.ledger_entry (transaction_id, account_id, category_item_id, amount, entry_type)
 select transaction_id,
        account_id,
-       null::integer as category_id,
+       null::integer as category_item_id,
        amount as amount,
        'ASSET' as entry_type
 from journal_entry_bases
