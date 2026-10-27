@@ -31,17 +31,17 @@ class Account(
 ) {
 
     @Column(name = "name")
-    final var name: String = name
-        private set
+    var name: String = name
+        protected set
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "credit_card_metadata")
-    final var creditCardMetadata: CreditCardMetadata? = creditCardMetadata
-        private set
+    var creditCardMetadata: CreditCardMetadata? = creditCardMetadata
+        protected set
 
     @Column(name = "is_active")
-    final var isActive: Boolean = isActive
-        private set
+    var isActive: Boolean = isActive
+        protected set
 
     fun rename(newName: String) {
         name = newName
