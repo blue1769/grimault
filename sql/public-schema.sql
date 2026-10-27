@@ -29,26 +29,48 @@ COMMENT ON COLUMN public.account.is_active IS '신규 거래 작성 시 계정 �
 COMMENT ON COLUMN public.account.created_at IS '계정 등록 시스템 일시';
 
 -- =============================================================================
--- 2. 분류 카테고리 마스터 (category)
+-- 2. 분류 대분류 마스터 (category)
 -- =============================================================================
 CREATE TABLE public.category (
     id SERIAL PRIMARY KEY,
     type VARCHAR(20) NOT NULL,
-    parent_name VARCHAR(50) COLLATE ko_kr_latin_first NOT NULL,
-    sub_name VARCHAR(50) COLLATE ko_kr_latin_first NOT NULL,
+    name VARCHAR(50) COLLATE ko_kr_latin_first NOT NULL UNIQUE,
     is_active BOOLEAN NOT NULL DEFAULT true,
-    CONSTRAINT uq_category UNIQUE (type, parent_name, sub_name)
+    sort_order INT NOT NULL,
+    CONSTRAINT uq_category_sort_order UNIQUE (sort_order) DEFERRABLE INITIALLY IMMEDIATE
 );
 
-COMMENT ON TABLE public.category IS '분류 카테고리 마스터 (대분류 > 소분류 2단계 고정 체계)';
-COMMENT ON COLUMN public.category.id IS '카테고리 고유 식별자 (PK)';
-COMMENT ON COLUMN public.category.type IS '손익 분류 구분 (EXPENSE: 지출, INCOME: 수입)';
-COMMENT ON COLUMN public.category.parent_name IS '1단계 대분류 명칭 (예: 식비, 주거/통신, 생활용품 등)';
-COMMENT ON COLUMN public.category.sub_name IS '2단계 소분류 명칭 (예: 외식, 통신비, 기타 등)';
-COMMENT ON COLUMN public.category.is_active IS '신규 거래 작성 UI 노출 여부 (true: 기본 노출, false: 기타 등 선택 지양 항목)';
+COMMENT ON TABLE public.category IS '손익 분류 대분류 마스터 (EXPENSE/INCOME)';
+COMMENT ON COLUMN public.category.id IS '대분류 고유 식별자 (PK)';
+COMMENT ON COLUMN public.category.type IS '손익 분류 구분 (EXPENSE: 지출, INCOME: 수입; 생성 후 변경 불가)';
+COMMENT ON COLUMN public.category.name IS '대분류 명칭 (전체 대분류에서 중복 불가)';
+COMMENT ON COLUMN public.category.is_active IS '대분류 활성 상태 (소분류 활성 상태와 독립적으로 관리)';
+COMMENT ON COLUMN public.category.sort_order IS '전체 대분류에서 1부터 연속되는 사용자 지정 순번 (비활성 포함)';
 
 -- =============================================================================
--- 3. 거래 헤더 (transaction)
+-- 3. 분류 소분류 마스터 (category_item)
+-- =============================================================================
+CREATE TABLE public.category_item (
+    id SERIAL PRIMARY KEY,
+    category_id INT NOT NULL REFERENCES public.category(id),
+    name VARCHAR(50) COLLATE ko_kr_latin_first NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    sort_order INT NOT NULL,
+    is_favorite BOOLEAN NOT NULL DEFAULT false,
+    CONSTRAINT uq_category_item_name UNIQUE (category_id, name),
+    CONSTRAINT uq_category_item_sort_order UNIQUE (category_id, sort_order) DEFERRABLE INITIALLY IMMEDIATE
+);
+
+COMMENT ON TABLE public.category_item IS '손익 분류 소분류 마스터 (대분류에 종속되는 2단계 분류)';
+COMMENT ON COLUMN public.category_item.id IS '소분류 고유 식별자 (PK; 원장 참조 대상)';
+COMMENT ON COLUMN public.category_item.category_id IS '소속 대분류 식별자 (FK)';
+COMMENT ON COLUMN public.category_item.name IS '소분류 명칭 (동일 대분류 안에서 중복 불가)';
+COMMENT ON COLUMN public.category_item.is_active IS '소분류 활성 상태 (실제 선택 가능 여부는 대분류 활성 상태와 함께 판단)';
+COMMENT ON COLUMN public.category_item.sort_order IS '소속 대분류 내에서 1부터 연속되는 사용자 지정 순번 (비활성 포함)';
+COMMENT ON COLUMN public.category_item.is_favorite IS '자주 쓰는 분류 지정 여부 (활성 상태와 독립적으로 관리)';
+
+-- =============================================================================
+-- 4. 거래 헤더 (transaction)
 -- =============================================================================
 CREATE TABLE public.transaction (
     id BIGSERIAL PRIMARY KEY,
@@ -72,13 +94,13 @@ COMMENT ON COLUMN public.transaction.is_waste IS '낭비성 지출 여부 플래
 COMMENT ON COLUMN public.transaction.created_at IS '데이터베이스 최초 등록 시스템 감사 일시';
 
 -- =============================================================================
--- 4. 분개 원장 라인 (ledger_entry)
+-- 5. 분개 원장 라인 (ledger_entry)
 -- =============================================================================
 CREATE TABLE public.ledger_entry (
     id BIGSERIAL PRIMARY KEY,
     transaction_id BIGINT NOT NULL REFERENCES public.transaction(id) ON DELETE CASCADE,
     account_id INT REFERENCES public.account(id),
-    category_id INT REFERENCES public.category(id),
+    category_item_id INT REFERENCES public.category_item(id),
     amount NUMERIC(15, 2) NOT NULL,
     entry_type VARCHAR(20) NOT NULL
 );
@@ -87,12 +109,12 @@ COMMENT ON TABLE public.ledger_entry IS '복식부기 분개 원장 라인 (자�
 COMMENT ON COLUMN public.ledger_entry.id IS '분개 라인 고유 식별자 (PK)';
 COMMENT ON COLUMN public.ledger_entry.transaction_id IS '연계 거래 헤더 식별자 (FK, ON DELETE CASCADE)';
 COMMENT ON COLUMN public.ledger_entry.account_id IS '변동 대상 금융 계정 식별자 (자산/부채 변동 시 필수, FK)';
-COMMENT ON COLUMN public.ledger_entry.category_id IS '손익 인식 대상 카테고리 식별자 (수입/지출 손익 인식 시 매핑, FK)';
+COMMENT ON COLUMN public.ledger_entry.category_item_id IS '손익 인식 대상 소분류 식별자 (수입/지출 손익 인식 시 매핑, FK)';
 COMMENT ON COLUMN public.ledger_entry.amount IS '거래 금액 (부호형: 증가는 양수(+), 감소는 음수(-))';
 COMMENT ON COLUMN public.ledger_entry.entry_type IS '분개 속성 구분 (ASSET: 자산, LIABILITY: 부채, EXPENSE: 비용, REVENUE: 수익, EQUITY: 기초자본)';
 
 -- =============================================================================
--- 5. 성능 및 정합성 인덱스 (Performance & Foreign Key Indexes)
+-- 6. 성능 및 정합성 인덱스 (Performance & Foreign Key Indexes)
 -- =============================================================================
 
 -- 1. 가계부 타임라인 조회 (최신순 페이징/범위 조회 최적화)
@@ -109,7 +131,7 @@ CREATE INDEX IF NOT EXISTS idx_ledger_entry_account_id
     WHERE account_id IS NOT NULL;
 
 -- 4. 카테고리별 지출/수입 손익 통계 집계 최적화
-CREATE INDEX IF NOT EXISTS idx_ledger_entry_category
-    ON public.ledger_entry (category_id)
+CREATE INDEX IF NOT EXISTS idx_ledger_entry_category_item
+    ON public.ledger_entry (category_item_id)
     INCLUDE (amount)
-    WHERE category_id IS NOT NULL;
+    WHERE category_item_id IS NOT NULL;
