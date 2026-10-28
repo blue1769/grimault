@@ -9,9 +9,13 @@ enum class ErrorCode(
     val message: String,
 ) {
 
+    // Account
     ACCOUNT_NOT_FOUND(NOT_FOUND, "Account not found"),
     INACTIVE_ACCOUNT_UPDATE(BAD_REQUEST, "Inactive account update"),
     INVALID_ACCOUNT_KIND(BAD_REQUEST, "Invalid account kind"),
     INVALID_ACCOUNT_UPDATE(BAD_REQUEST, "Invalid account update"),
+
+    // Category
+    INVALID_CATEGORY_TYPE(BAD_REQUEST, "Invalid category type"),
 
 }

@@ -6,6 +6,8 @@ import com.blustar.grimault.domain.category.entity.Category
 import com.blustar.grimault.domain.category.entity.CategoryItem
 import com.blustar.grimault.domain.category.entity.CategoryType
 import com.blustar.grimault.domain.category.repository.CategoryTreeQueryRepository
+import com.blustar.grimault.global.error.ErrorCode
+import com.blustar.grimault.global.error.GrimaultException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -19,7 +21,10 @@ class CategoryService(
         typeName: String? = null,
         selectableOnly: Boolean = false,
     ): List<CategoryResponse> {
-        val type = CategoryType.fromNameOrNull(typeName)
+        val type = typeName?.let {
+            CategoryType.fromNameOrNull(typeName)
+                ?: throw GrimaultException(ErrorCode.INVALID_CATEGORY_TYPE, "Invalid category type: $typeName")
+        }
 
         return queryRepository
             .findAll(type, selectableOnly)

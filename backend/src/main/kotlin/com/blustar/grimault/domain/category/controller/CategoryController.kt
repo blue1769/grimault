@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController
 
 @Tag(name = "category", description = "카테고리 관리")
 @RestController
-@RequestMapping("/category")
+@RequestMapping("/categories")
 class CategoryController(
     private val service: CategoryService
 ) {
@@ -20,7 +20,7 @@ class CategoryController(
     @GetMapping
     fun findAll(
         @RequestParam(required = false) type: String?,
-        @RequestParam(required = false) selectableOnly: Boolean,
+        @RequestParam(required = false, defaultValue = "false") selectableOnly: Boolean,
     ): List<CategoryResponse> {
         return service.findAll(type, selectableOnly)
     }
