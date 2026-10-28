@@ -1,6 +1,6 @@
 # Category 기능 명세
 
-> 문서 상태: 검토용  
+> [!NOTE]  
 > 목적: Grimault의 수입·지출 분류(Category / CategoryItem) 관리 기능과 API 동작 규약을 정의한다.
 
 ## 1. 범위

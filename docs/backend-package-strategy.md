@@ -1,67 +1,54 @@
 # Backend Architecture & Package Strategy
 
 ## 1. 패키징 원칙 (Package by Feature / Domain)
-- 기술 계층(Layer) 대신 **비즈니스 도메인(Feature)**을 최우선 경계로 설정하여 응집도를 극대화한다.
-- 각 도메인은 독립된 모듈처럼 동작하며, 도메인 내부 구현 세부사항은 패키지 외부로 불필요하게 노출하지 않는다.
 
----
+- 기술 계층(Layer) 대신 **비즈니스 도메인(Feature)**을 최우선 경계로 설정하여 응집도를 높인다.
+- 각 도메인은 독립된 모듈처럼 동작하며, 내부 구현 세부사항을 외부에 불필요하게 노출하지 않는다.
 
 ## 2. 패키지 간 의존성 규칙 (Dependency Rules)
 
-```text
-[ global ] ◄── (공통 인프라/설정/예외)
-   ▲
-   │ (참조 허용, 역참조 금지)
-   │
-[ account ]     [ category ]
-   ▲                 ▲
-   └─── [ ledger ] ──┘  (코어 원장은 마스터 도메인을 단방향 참조)
-```
+### 단방향 의존성 원칙
 
-### (1) 단방향 의존성 원칙:
-- `domain` ➔ `global` 참조는 허용하지만, `global`이 특정 `domain`의 클래스를 역참조하는 것은 엄격히 금지한다.
-- `ledger`(원장)는 분개 매핑을 위해 `account`와 `category`를 참조할 수 있다.
-- 반대로 `account`와 `category`는 `ledger`의 존재를 전혀 알지 못해야 한다. (단방향 유지)
+- `domain` → `global` 참조는 허용하되, `global`에서 특정 `domain`을 역참조하지 않는다.
+- 도메인 간 참조는 비즈니스 책임에 따라 명시적으로 정의하며, 순환 의존성을 허용하지 않는다.
+- 공통 기능은 `global`에 배치하되, 도메인 고유의 비즈니스 로직은 해당 도메인 내부에서 관리한다.
 
-### (2) 도메인 캡슐화:
-- 외부 도메인에 노출할 필요가 없는 내부 클래스(내부 계산 로직, 전용 Helper 등)는 Kotlin의 `internal` 또는 `private`을 적극 활용한다.
+### 도메인 캡슐화
 
-### (3) Entity vs DTO 분리:
-- `entity`는 도메인의 상태와 불변식을 보호하며, Controller 레이어 바깥(HTTP Request/Response)으로 절대 직접 노출하지 않는다.
-- Controller와의 통신은 각 도메인 내 `dto` 패키지(추후 생성)의 Request/Response 객체로만 수행한다.
+- 외부 도메인에 노출할 필요가 없는 내부 구현은 Kotlin의 `internal` 또는 `private`을 활용하여 접근 범위를 제한한다.
 
-## 3. 디렉토리 구조 명세
+### Entity와 DTO 분리
+
+- `entity`는 도메인의 상태와 불변식을 관리하며, HTTP Request/Response 모델로 직접 노출하지 않는다.
+- API 입출력은 도메인별 DTO를 통해 처리한다.
+
+## 3. 패키지 구조 예시
+
+아래 구조는 패키지 구성 원칙을 설명하기 위한 예시이며, 실제 도메인 및 클래스 구성과 일치할 필요는 없다.
 
 ```text
-com.blustar.grimault
+com.example.project
 ├── domain
-│   ├── account
+│   ├── feature-a
+│   │   ├── controller
+│   │   ├── dto
 │   │   ├── entity
-│   │   │   ├── Account.kt
-│   │   │   ├── AccountType.kt          # Enum (ASSET, LIABILITY, EQUITY)
-│   │   │   └── AccountSubtype.kt       # Enum (BANK, CASH, PREPAID, CREDIT_CARD)
 │   │   ├── repository
-│   │   │   └── AccountRepository.kt
-│   │   └── service                     # 비즈니스 로직
+│   │   └── service
 │   │
-│   ├── category
-│   │   ├── entity
-│   │   │   ├── Category.kt
-│   │   │   └── CategoryType.kt         # Enum (EXPENSE, INCOME)
-│   │   └── repository
-│   │       └── CategoryRepository.kt
-│   │
-│   └── ledger                          # 코어 원장 (Transaction + LedgerEntry)
+│   └── feature-b
+│       ├── controller
+│       ├── dto
 │       ├── entity
-│       │   ├── Transaction.kt          # 거래 헤더
-│       │   ├── LedgerEntry.kt          # 분개 엔트리 (FK: Account, Category)
-│       │   └── EntryType.kt            # Enum (DEBIT, CREDIT / ASSET, EXPENSE 등)
-│       └── repository
-│           ├── TransactionRepository.kt
-│           └── LedgerEntryRepository.kt
+│       ├── repository
+│       └── service
 │
-└── global                              # 공통 인프라/유틸/예외 처리
-    ├── common                          # BaseTimeEntity 등 공통 엔티티 추상화
-    ├── config                          # JPA Auditing, DB 설정 등
-    └── error                           # GlobalExceptionHandler, ErrorCode, CustomException
+└── global
+    ├── config
+    ├── error
+    └── common
 ```
+
+- `domain`: 기능 및 도메인별 비즈니스 책임을 관리한다.
+- `global`: 특정 도메인에 종속되지 않는 공통 인프라와 설정을 관리한다.
+- 각 도메인의 하위 패키지는 실제 구현에 필요한 구성만 선택적으로 사용한다.
