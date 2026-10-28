@@ -21,4 +21,7 @@ class Category(
 
     @Column(name = "sort_order")
     val sortOrder: Int,
+
+    @OneToMany(mappedBy = "category", fetch = FetchType.LAZY)
+    val items: List<CategoryItem> = emptyList(),
 )
