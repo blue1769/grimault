@@ -8,7 +8,7 @@
 
 # 목표
 
-> [!IMPORTANT]
+> [!NOTE]
 > **“네이버 가계부를 완전히 대체할 수 있는 가계부를 완성한다”**
 
 ## 주요 목표
@@ -43,13 +43,29 @@
 > - 장기간 누적한 삶의 궤적이 응축된 금융 지식의 비전서(Grimoire)이자,
 > - 외부 플랫폼에 종속하지 않고 홈랩에 단단히 봉인한 금고(Vault)라는 의미의 합성 조어
 
+# 프로젝트 문서
+
+## 데이터 및 회계 설계
+- [원천 데이터 역공학 및 사용 패턴 분석](docs/raw-data-reverse-engineering.md)
+- [PostgreSQL 선정 근거 및 데이터베이스 스키마](docs/data-and-schema.md)
+- [데이터 클렌징 및 마이그레이션 전략](docs/data-cleansing-and-migration.md)
+- [복식부기 분개 전략 및 회계 규칙](docs/journal-entry-rules.md)
+
+## 백엔드 설계 및 API 명세
+- [백엔드 아키텍처 및 패키지 전략](docs/backend-package-strategy.md)
+- [Account API 기능 명세](docs/api-specifications/account-api-specification.md)
+- [Category API 기능 명세](docs/api-specifications/category-api-specification.md)
+
+## 테스트 전략
+- [백엔드 단위 테스트 작성 규약](docs/backend-unit-test-convention.md)
+
 # 마일스톤 및 우선순위
 
 ## Phase 1: 데이터 추출, 역공학, 정합성 검증
 
-- [네이버 가계부 전체 RAW data 다운로드 및 구조 분석](docs/raw-data-reverse-engineering.md)
-- [데이터 추출 및 스키마 설계](docs/data-and-schema.md)
-- [데이터 클렌징 및 마이그레이션 스크립트 작성](docs/data-cleansing-and-migration.md)
+- 네이버 가계부 전체 RAW data 다운로드 및 구조 분석
+- 데이터 추출 및 스키마 설계
+- 데이터 클렌징 및 마이그레이션 스크립트 작성
 
 ## Phase 2: 백엔드 API 구현
 
