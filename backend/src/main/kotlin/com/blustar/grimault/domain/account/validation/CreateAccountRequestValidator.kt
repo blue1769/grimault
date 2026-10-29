@@ -14,21 +14,21 @@ class CreateAccountRequestValidator :
 
     @Suppress("RedundantIf")
     override fun isValid(
-        request: CreateAccountRequest?,
+        body: CreateAccountRequest?,
         context: ConstraintValidatorContext,
     ): Boolean {
-        if (request == null) {
+        if (body == null) {
             return true
         }
 
-        if (request.name.isBlank()) {
+        if (body.name.isBlank()) {
             return invalid(context, "Account name must not be blank")
         }
 
-        val type = AccountType.fromNameOrNull(request.type.trim())
+        val type = AccountType.fromNameOrNull(body.type.trim())
             ?: return invalid(context, "Invalid account kind")
 
-        val subtype = AccountSubtype.fromNameOrNull(request.subtype.trim())
+        val subtype = AccountSubtype.fromNameOrNull(body.subtype.trim())
             ?: return invalid(context, "Invalid account kind")
 
         if (!validateTypeDependencies(type, subtype)) {
@@ -36,15 +36,15 @@ class CreateAccountRequestValidator :
         }
 
         if (subtype == CREDIT_CARD) {
-            return validateCreditCardMetadata(request, context)
+            return validateCreditCardMetadata(body, context)
         }
 
-        val hasAnyCreditCardMetadata: Boolean = request.issuer != null ||
-                request.settlementDay != null ||
-                request.startMonthOffset != null ||
-                request.startDay != null ||
-                request.endMonthOffset != null ||
-                request.endDay != null
+        val hasAnyCreditCardMetadata: Boolean = body.issuer != null ||
+                body.settlementDay != null ||
+                body.startMonthOffset != null ||
+                body.startDay != null ||
+                body.endMonthOffset != null ||
+                body.endDay != null
 
         if (hasAnyCreditCardMetadata) {
             return invalid(context, "Unexpected credit card metadata")
@@ -66,7 +66,7 @@ class CreateAccountRequestValidator :
 
     @Suppress("RedundantIf")
     private fun validateCreditCardMetadata(
-        request: CreateAccountRequest,
+        body: CreateAccountRequest,
         context: ConstraintValidatorContext,
     ): Boolean {
         operator fun Pair<Int, Int>.compareTo(end: Pair<Int, Int>): Int {
@@ -77,22 +77,22 @@ class CreateAccountRequestValidator :
             return second.compareTo(end.second)
         }
 
-        val hasMissingRequiredFields = request.issuer.isNullOrBlank() ||
-                request.settlementDay == null ||
-                request.startMonthOffset == null ||
-                request.startDay == null ||
-                request.endMonthOffset == null ||
-                request.endDay == null
+        val hasMissingRequiredFields = body.issuer.isNullOrBlank() ||
+                body.settlementDay == null ||
+                body.startMonthOffset == null ||
+                body.startDay == null ||
+                body.endMonthOffset == null ||
+                body.endDay == null
 
         if (hasMissingRequiredFields) {
             return invalid(context, "Missing mandatory credit card metadata")
         }
 
-        CreditCardIssuer.fromNameOrNull(request.issuer.trim())
+        CreditCardIssuer.fromNameOrNull(body.issuer.trim())
             ?: return invalid(context, "Invalid credit card issuer")
 
-        val start = request.startMonthOffset to request.startDay
-        val end = request.endMonthOffset to request.endDay
+        val start = body.startMonthOffset to body.startDay
+        val end = body.endMonthOffset to body.endDay
 
         if (start >= end) {
             return invalid(context, "Invalid credit card billing period")

@@ -8,22 +8,22 @@ class UpdateAccountRequestValidator :
     ConstraintValidator<ValidUpdateAccountRequest, UpdateAccountRequest> {
 
     override fun isValid(
-        request: UpdateAccountRequest?,
+        body: UpdateAccountRequest?,
         context: ConstraintValidatorContext,
     ): Boolean {
-        if (request == null) {
+        if (body == null) {
             return true
         }
 
-        if (request.name != null && request.name.isBlank()) {
+        if (body.name != null && body.name.isBlank()) {
             return invalid(context, "Account name must not be blank")
         }
 
-        if (request.hasNoUpdateFields) {
+        if (body.hasNoUpdateFields) {
             return invalid(context, "No fields to update")
         }
 
-        if (!hasValidBillingPeriod(request)) {
+        if (!hasValidBillingPeriod(body)) {
             return invalid(context, "Incomplete billing period")
         }
 
@@ -31,12 +31,12 @@ class UpdateAccountRequestValidator :
     }
 
     @Suppress("RedundantIf")
-    private fun hasValidBillingPeriod(request: UpdateAccountRequest): Boolean {
-        if (request.hasNoBillingPeriod) {
+    private fun hasValidBillingPeriod(body: UpdateAccountRequest): Boolean {
+        if (body.hasNoBillingPeriod) {
             return true
         }
 
-        if (request.hasCompleteBillingPeriod) {
+        if (body.hasCompleteBillingPeriod) {
             return true
         }
 
