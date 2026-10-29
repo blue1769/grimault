@@ -1,8 +1,7 @@
 package com.blustar.grimault.domain.category.controller
 
-import com.blustar.grimault.domain.category.dto.CategoryResponse
-import com.blustar.grimault.domain.category.dto.CategoryTreeResponse
-import com.blustar.grimault.domain.category.dto.CreateCategoryRequest
+import com.blustar.grimault.domain.category.dto.*
+import com.blustar.grimault.domain.category.service.CategoryItemService
 import com.blustar.grimault.domain.category.service.CategoryService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -15,7 +14,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 @RestController
 @RequestMapping("/categories")
 class CategoryController(
-    private val service: CategoryService
+    private val service: CategoryService,
+    private val itemService: CategoryItemService,
 ) {
 
     @Operation(summary = "전체 분류 계층 조회")
@@ -46,6 +46,22 @@ class CategoryController(
             .toUri()
 
         return ResponseEntity.created(location).body(category)
+    }
+
+    @PostMapping("/{id}/items")
+    fun createNewItem(
+        @PathVariable id: Int,
+        @Valid @RequestBody body: CreateCategoryItemRequest,
+    ): ResponseEntity<CategoryItemResponse> {
+        val item = itemService.create(id, body)
+
+        val location = ServletUriComponentsBuilder
+            .fromCurrentContextPath()
+            .path("/category-items/{id}")
+            .buildAndExpand(item.id)
+            .toUri()
+
+        return ResponseEntity.created(location).body(item)
     }
 
 }
