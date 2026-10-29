@@ -1,4 +1,4 @@
-# 소분류 생성 시 소속 대분류 존재 여부 검증 (Category Item Creation Parent Not Found)
+# 소분류 생성 시 소속 대분류 존재 여부 검증 (Category Item Creation Group Not Found)
 
 ## 개요
 
