@@ -3,9 +3,11 @@ package com.blustar.grimault.domain.category.service
 import com.blustar.grimault.domain.category.dto.CategoryResponse
 import com.blustar.grimault.domain.category.dto.CategoryTreeItemResponse
 import com.blustar.grimault.domain.category.dto.CategoryTreeResponse
+import com.blustar.grimault.domain.category.dto.CreateCategoryRequest
 import com.blustar.grimault.domain.category.entity.Category
 import com.blustar.grimault.domain.category.entity.CategoryItem
 import com.blustar.grimault.domain.category.entity.CategoryType
+import com.blustar.grimault.domain.category.repository.CategoryOrderLockRepository
 import com.blustar.grimault.domain.category.repository.CategoryRepository
 import com.blustar.grimault.domain.category.repository.CategoryTreeQueryRepository
 import com.blustar.grimault.global.error.ErrorCode
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional
 class CategoryService(
     private val repository: CategoryRepository,
     private val queryRepository: CategoryTreeQueryRepository,
+    private val orderLockRepository: CategoryOrderLockRepository,
 ) {
 
     fun findAll(
@@ -38,6 +41,18 @@ class CategoryService(
     fun findById(id: Int): CategoryResponse {
         val category = repository.findByIdOrNull(id)
             ?: throw GrimaultException(ErrorCode.CATEGORY_NOT_FOUND, "Category not found: $id")
+
+        return CategoryResponse.from(category)
+    }
+
+    @Transactional
+    fun create(body: CreateCategoryRequest): CategoryResponse {
+        orderLockRepository.lock()
+
+        val maxSortOrder = repository.findMaxSortOrder() ?: 0
+        val nextSortOrder = maxSortOrder + 1
+
+        val category = repository.save(body.toEntity(nextSortOrder))
 
         return CategoryResponse.from(category)
     }

@@ -2,14 +2,14 @@ package com.blustar.grimault.domain.category.controller
 
 import com.blustar.grimault.domain.category.dto.CategoryResponse
 import com.blustar.grimault.domain.category.dto.CategoryTreeResponse
+import com.blustar.grimault.domain.category.dto.CreateCategoryRequest
 import com.blustar.grimault.domain.category.service.CategoryService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RestController
+import jakarta.validation.Valid
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.*
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 
 @Tag(name = "category", description = "카테고리 관리")
 @RestController
@@ -31,6 +31,21 @@ class CategoryController(
     @GetMapping("/{id}")
     fun findById(@PathVariable id: Int): CategoryResponse {
         return service.findById(id)
+    }
+
+    @PostMapping
+    fun create(
+        @Valid @RequestBody body: CreateCategoryRequest,
+    ): ResponseEntity<CategoryResponse> {
+        val category = service.create(body)
+
+        val location = ServletUriComponentsBuilder
+            .fromCurrentRequest()
+            .path("/{id}")
+            .buildAndExpand(category.id)
+            .toUri()
+
+        return ResponseEntity.created(location).body(category)
     }
 
 }

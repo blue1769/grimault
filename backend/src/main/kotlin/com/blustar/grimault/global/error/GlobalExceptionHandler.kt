@@ -53,6 +53,7 @@ class GlobalExceptionHandler {
 
         val (status, message) = when (constraintName) {
             "account_name_key" -> HttpStatus.CONFLICT to "Account name already exists"
+            "category_name_key" -> HttpStatus.CONFLICT to "Category name already exists"
             else -> HttpStatus.INTERNAL_SERVER_ERROR to "Data integrity violation (constraint: ${constraintName ?: "unknown"})"
         }
 

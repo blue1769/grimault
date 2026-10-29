@@ -1,5 +1,6 @@
 package com.blustar.grimault.domain.category.service
 
+import com.blustar.grimault.domain.category.repository.CategoryOrderLockRepository
 import com.blustar.grimault.domain.category.repository.CategoryRepository
 import com.blustar.grimault.domain.category.repository.CategoryTreeQueryRepository
 import com.blustar.grimault.global.error.ErrorCode
@@ -10,13 +11,15 @@ import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
-import java.util.Optional
+import java.util.*
 
 class CategoryServiceTest {
 
     private val repository = mockk<CategoryRepository>()
     private val queryRepository = mockk<CategoryTreeQueryRepository>()
-    private val service = CategoryService(repository, queryRepository)
+    private val orderLockRepository = mockk<CategoryOrderLockRepository>()
+
+    private val service = CategoryService(repository, queryRepository, orderLockRepository)
 
     @Test
     fun `존재하지 않는 대분류는 조회할 수 없다`() {
