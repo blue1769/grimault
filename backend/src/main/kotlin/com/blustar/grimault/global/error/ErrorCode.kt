@@ -16,6 +16,7 @@ enum class ErrorCode(
     INVALID_ACCOUNT_UPDATE(BAD_REQUEST, "Invalid account update"),
 
     // Category
+    CATEGORY_NOT_FOUND(NOT_FOUND, "Category not found"),
     INVALID_CATEGORY_TYPE(BAD_REQUEST, "Invalid category type"),
 
 }

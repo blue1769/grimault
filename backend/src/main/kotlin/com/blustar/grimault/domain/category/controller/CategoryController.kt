@@ -5,6 +5,7 @@ import com.blustar.grimault.domain.category.service.CategoryService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
@@ -23,6 +24,12 @@ class CategoryController(
         @RequestParam(required = false, defaultValue = "false") selectableOnly: Boolean,
     ): List<CategoryResponse> {
         return service.findAll(type, selectableOnly)
+    }
+
+    @Operation(summary = "단일 분류 조회")
+    @GetMapping("/{id}")
+    fun findById(@PathVariable id: Int): CategoryResponse {
+        return service.findById(id)
     }
 
 }

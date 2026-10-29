@@ -5,15 +5,18 @@ import com.blustar.grimault.domain.category.dto.CategoryResponse
 import com.blustar.grimault.domain.category.entity.Category
 import com.blustar.grimault.domain.category.entity.CategoryItem
 import com.blustar.grimault.domain.category.entity.CategoryType
+import com.blustar.grimault.domain.category.repository.CategoryRepository
 import com.blustar.grimault.domain.category.repository.CategoryTreeQueryRepository
 import com.blustar.grimault.global.error.ErrorCode
 import com.blustar.grimault.global.error.GrimaultException
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 @Service
 @Transactional(readOnly = true)
 class CategoryService(
+    private val repository: CategoryRepository,
     private val queryRepository: CategoryTreeQueryRepository,
 ) {
 
@@ -29,6 +32,13 @@ class CategoryService(
         return queryRepository
             .findAll(type, selectableOnly)
             .toResponses(CategoryItemResponse::from)
+    }
+
+    fun findById(id: Int): CategoryResponse {
+        val category = repository.findByIdOrNull(id)
+            ?: throw GrimaultException(ErrorCode.CATEGORY_NOT_FOUND, "Category not found: $id")
+
+        return CategoryResponse.from(category, emptyList())
     }
 
     private fun List<Pair<Category, CategoryItem?>>.toResponses(
