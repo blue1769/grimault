@@ -2,6 +2,7 @@ package com.blustar.grimault.domain.category.service
 
 import com.blustar.grimault.domain.category.dto.CategoryItemResponse
 import com.blustar.grimault.domain.category.dto.CategoryResponse
+import com.blustar.grimault.domain.category.dto.CategoryTreeResponse
 import com.blustar.grimault.domain.category.entity.Category
 import com.blustar.grimault.domain.category.entity.CategoryItem
 import com.blustar.grimault.domain.category.entity.CategoryType
@@ -23,7 +24,7 @@ class CategoryService(
     fun findAll(
         typeName: String? = null,
         selectableOnly: Boolean = false,
-    ): List<CategoryResponse> {
+    ): List<CategoryTreeResponse> {
         val type = typeName?.let {
             CategoryType.fromNameOrNull(typeName)
                 ?: throw GrimaultException(ErrorCode.INVALID_CATEGORY_TYPE, "Invalid category type: $typeName")
@@ -38,16 +39,16 @@ class CategoryService(
         val category = repository.findByIdOrNull(id)
             ?: throw GrimaultException(ErrorCode.CATEGORY_NOT_FOUND, "Category not found: $id")
 
-        return CategoryResponse.from(category, emptyList())
+        return CategoryResponse.from(category)
     }
 
     private fun List<Pair<Category, CategoryItem?>>.toResponses(
         itemMapper: (CategoryItem) -> CategoryItemResponse,
-    ): List<CategoryResponse> =
+    ): List<CategoryTreeResponse> =
         groupBy { (category, _) -> category.id }
             .values
             .map { group ->
-                CategoryResponse.from(
+                CategoryTreeResponse.from(
                     group.first().first,
                     group.mapNotNull { (_, item) -> item?.let(itemMapper) },
                 )

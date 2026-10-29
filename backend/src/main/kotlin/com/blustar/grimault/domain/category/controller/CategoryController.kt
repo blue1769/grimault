@@ -1,6 +1,7 @@
 package com.blustar.grimault.domain.category.controller
 
 import com.blustar.grimault.domain.category.dto.CategoryResponse
+import com.blustar.grimault.domain.category.dto.CategoryTreeResponse
 import com.blustar.grimault.domain.category.service.CategoryService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -22,7 +23,7 @@ class CategoryController(
     fun findAll(
         @RequestParam(required = false) type: String?,
         @RequestParam(required = false, defaultValue = "false") selectableOnly: Boolean,
-    ): List<CategoryResponse> {
+    ): List<CategoryTreeResponse> {
         return service.findAll(type, selectableOnly)
     }
 
