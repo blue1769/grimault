@@ -1,7 +1,7 @@
 package com.blustar.grimault.domain.category.service
 
-import com.blustar.grimault.domain.category.dto.CategoryItemResponse
 import com.blustar.grimault.domain.category.dto.CategoryResponse
+import com.blustar.grimault.domain.category.dto.CategoryTreeItemResponse
 import com.blustar.grimault.domain.category.dto.CategoryTreeResponse
 import com.blustar.grimault.domain.category.entity.Category
 import com.blustar.grimault.domain.category.entity.CategoryItem
@@ -32,7 +32,7 @@ class CategoryService(
 
         return queryRepository
             .findAll(type, selectableOnly)
-            .toResponses(CategoryItemResponse::from)
+            .toResponses(CategoryTreeItemResponse::from)
     }
 
     fun findById(id: Int): CategoryResponse {
@@ -43,7 +43,7 @@ class CategoryService(
     }
 
     private fun List<Pair<Category, CategoryItem?>>.toResponses(
-        itemMapper: (CategoryItem) -> CategoryItemResponse,
+        itemMapper: (CategoryItem) -> CategoryTreeItemResponse,
     ): List<CategoryTreeResponse> =
         groupBy { (category, _) -> category.id }
             .values

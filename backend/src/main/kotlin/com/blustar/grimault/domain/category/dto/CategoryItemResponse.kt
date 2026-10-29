@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema
 @Schema(description = "상세 카테고리 항목 응답")
 data class CategoryItemResponse(
     val id: Int,
+    val categoryId: Int,
     val name: String,
 
     @get:JsonProperty("isActive")
@@ -21,8 +22,13 @@ data class CategoryItemResponse(
                 "Category item id must not be null"
             }
 
+            val verifiedCategoryId = requireNotNull(item.category.id) {
+                "Category id must not be null"
+            }
+
             return CategoryItemResponse(
                 id = verifiedId,
+                categoryId = verifiedCategoryId,
                 name = item.name,
                 isActive = item.isActive,
                 sortOrder = item.sortOrder,
