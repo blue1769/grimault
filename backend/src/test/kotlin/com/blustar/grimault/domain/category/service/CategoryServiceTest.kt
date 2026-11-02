@@ -106,6 +106,22 @@ class CategoryServiceTest {
     }
 
     @Test
+    fun `존재하지 않는 대분류의 이름은 수정할 수 없다`() {
+        // Arrange
+        val id = 999
+        val body = UpdateCategoryRequest(name = "외식비")
+        every { repository.findById(id) } returns Optional.empty()
+
+        // Act
+        val exception = assertThrows(GrimaultException::class.java) {
+            service.update(id = id, body = body)
+        }
+
+        // Assert
+        assertEquals(ErrorCode.CATEGORY_NOT_FOUND, exception.errorCode)
+    }
+
+    @Test
     fun `존재하지 않는 대분류는 조회할 수 없다`() {
         // Arrange
         val id = 999
