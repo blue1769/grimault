@@ -1,6 +1,7 @@
 package com.blustar.grimault.domain.category.service
 
 import com.blustar.grimault.domain.category.dto.CreateCategoryRequest
+import com.blustar.grimault.domain.category.dto.UpdateCategoryRequest
 import com.blustar.grimault.domain.category.entity.Category
 import com.blustar.grimault.domain.category.entity.CategoryType
 import com.blustar.grimault.domain.category.repository.CategoryOrderLockRepository
@@ -16,6 +17,7 @@ import io.mockk.slot
 import io.mockk.verifySequence
 import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
@@ -71,6 +73,36 @@ class CategoryServiceTest {
             repository.findMaxSortOrder()
             repository.save(any())
         }
+    }
+
+    @Test
+    fun `대분류 이름을 변경해도 다른 속성은 유지된다`() {
+        // Arrange
+        val id = 10
+        val category = Category(
+            id = id,
+            type = CategoryType.EXPENSE,
+            name = "식비",
+            isActive = false,
+            sortOrder = 3,
+        )
+        val body = UpdateCategoryRequest(name = "외식비")
+        every { repository.findById(id) } returns Optional.of(category)
+
+        // Act
+        val response = service.update(id = id, body = body)
+
+        // Assert
+        assertEquals("외식비", category.name)
+        assertEquals(10, category.id)
+        assertEquals(CategoryType.EXPENSE, category.type)
+        assertFalse(category.isActive)
+        assertEquals(3, category.sortOrder)
+        assertEquals(category.id, response.id)
+        assertEquals(category.type, response.type)
+        assertEquals(category.name, response.name)
+        assertEquals(category.isActive, response.isActive)
+        assertEquals(category.sortOrder, response.sortOrder)
     }
 
     @Test
