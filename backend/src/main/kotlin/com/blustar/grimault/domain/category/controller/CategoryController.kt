@@ -66,4 +66,12 @@ class CategoryController(
         return ResponseEntity.created(location).body(item)
     }
 
+    @PatchMapping("/{id}")
+    fun update(
+        @PathVariable id: Int,
+        @Valid @RequestBody body: UpdateCategoryRequest,
+    ): CategoryResponse {
+        return service.update(id, body)
+    }
+
 }

@@ -13,8 +13,7 @@ class Category(
     @Enumerated(EnumType.STRING)
     val type: CategoryType,
 
-    @Column(name = "name")
-    val name: String,
+    name: String,
 
     @Column(name = "is_active")
     val isActive: Boolean = true,
@@ -24,4 +23,14 @@ class Category(
 
     @OneToMany(mappedBy = "category", fetch = FetchType.LAZY)
     val items: List<CategoryItem> = emptyList(),
-)
+) {
+
+    @Column(name = "name")
+    var name: String = name
+        protected set
+
+    fun rename(newName: String) {
+        name = newName
+    }
+
+}

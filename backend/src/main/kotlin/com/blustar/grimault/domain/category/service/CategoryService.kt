@@ -1,9 +1,6 @@
 package com.blustar.grimault.domain.category.service
 
-import com.blustar.grimault.domain.category.dto.CategoryResponse
-import com.blustar.grimault.domain.category.dto.CategoryTreeItemResponse
-import com.blustar.grimault.domain.category.dto.CategoryTreeResponse
-import com.blustar.grimault.domain.category.dto.CreateCategoryRequest
+import com.blustar.grimault.domain.category.dto.*
 import com.blustar.grimault.domain.category.entity.Category
 import com.blustar.grimault.domain.category.entity.CategoryItem
 import com.blustar.grimault.domain.category.entity.CategoryType
@@ -53,6 +50,16 @@ class CategoryService(
         val nextSortOrder = maxSortOrder + 1
 
         val category = repository.save(body.toEntity(nextSortOrder))
+
+        return CategoryResponse.from(category)
+    }
+
+    @Transactional
+    fun update(id: Int, body: UpdateCategoryRequest): CategoryResponse {
+        val category = repository.findByIdOrNull(id)
+            ?: throw GrimaultException(ErrorCode.CATEGORY_NOT_FOUND, "Category not found: $id")
+
+        category.rename(body.name)
 
         return CategoryResponse.from(category)
     }
