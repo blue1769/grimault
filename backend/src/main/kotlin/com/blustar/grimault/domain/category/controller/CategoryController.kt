@@ -33,6 +33,7 @@ class CategoryController(
         return service.findById(id)
     }
 
+    @Operation(summary = "카테고리 그룹 등록")
     @PostMapping
     fun create(
         @Valid @RequestBody body: CreateCategoryRequest,
@@ -48,6 +49,7 @@ class CategoryController(
         return ResponseEntity.created(location).body(category)
     }
 
+    @Operation(summary = "상세 카테고리 등록")
     @PostMapping("/{id}/items")
     fun createNewItem(
         @PathVariable id: Int,
