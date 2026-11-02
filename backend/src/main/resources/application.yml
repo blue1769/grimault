@@ -24,6 +24,10 @@ spring:
         type:
           json_format_mapper: jackson3
 
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+
 springdoc:
   api-docs:
     path: /api-docs
