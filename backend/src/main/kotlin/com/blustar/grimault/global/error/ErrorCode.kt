@@ -18,6 +18,7 @@ enum class ErrorCode(
     // Category
     CATEGORY_NOT_FOUND(NOT_FOUND, "Category not found"),
     CATEGORY_ITEM_NOT_FOUND(NOT_FOUND, "Category item not found"),
+    INVALID_CATEGORY_ITEM_ORDER(BAD_REQUEST, "Invalid category item ordering"),
     INVALID_CATEGORY_TYPE(BAD_REQUEST, "Invalid category type"),
 
 }
