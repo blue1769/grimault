@@ -66,6 +66,7 @@ class CategoryController(
         return ResponseEntity.created(location).body(item)
     }
 
+    @Operation(summary = "카테고리 그룹 수정")
     @PatchMapping("/{id}")
     fun update(
         @PathVariable id: Int,
