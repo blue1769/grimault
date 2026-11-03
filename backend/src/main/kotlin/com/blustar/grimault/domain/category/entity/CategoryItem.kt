@@ -9,19 +9,49 @@ class CategoryItem(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Int? = null,
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    val category: Category,
+    category: Category,
 
-    @Column(name = "name")
-    val name: String,
+    name: String,
 
     @Column(name = "is_active")
     val isActive: Boolean = true,
 
+    sortOrder: Int,
+
+    isFavorite: Boolean = false,
+) {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    var category: Category = category
+        protected set
+
+    @Column(name = "name")
+    var name: String = name
+        protected set
+
     @Column(name = "sort_order")
-    val sortOrder: Int,
+    var sortOrder: Int = sortOrder
+        protected set
 
     @Column(name = "is_favorite")
-    val isFavorite: Boolean = false,
-)
+    var isFavorite = isFavorite
+        protected set
+
+    fun moveTo(otherCategory: Category) {
+        category = otherCategory
+    }
+
+    fun rename(newName: String) {
+        name = newName
+    }
+
+    fun reorder(newOrder: Int) {
+        sortOrder = newOrder
+    }
+
+    fun favorite(state: Boolean) {
+        isFavorite = state
+    }
+
+}

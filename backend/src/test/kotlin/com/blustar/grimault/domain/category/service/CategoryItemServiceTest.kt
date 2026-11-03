@@ -8,15 +8,9 @@ import com.blustar.grimault.domain.category.repository.CategoryItemRepository
 import com.blustar.grimault.domain.category.repository.CategoryRepository
 import com.blustar.grimault.global.error.ErrorCode
 import com.blustar.grimault.global.error.GrimaultException
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.slot
-import io.mockk.verify
-import io.mockk.verifySequence
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Assertions.assertThrows
+import io.mockk.*
+import jakarta.persistence.EntityManager
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
@@ -26,8 +20,9 @@ class CategoryItemServiceTest {
 
     private val repository = mockk<CategoryItemRepository>()
     private val groupRepository = mockk<CategoryRepository>()
+    private val entityManager = mockk<EntityManager>()
 
-    private val service = CategoryItemService(repository, groupRepository)
+    private val service = CategoryItemService(repository, groupRepository, entityManager)
 
     @ParameterizedTest
     @CsvSource("null, 1", "1, 2", "5, 6", nullValues = ["null"])

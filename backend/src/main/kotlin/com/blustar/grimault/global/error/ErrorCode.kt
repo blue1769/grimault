@@ -2,6 +2,7 @@ package com.blustar.grimault.global.error
 
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatus.BAD_REQUEST
+import org.springframework.http.HttpStatus.CONFLICT
 import org.springframework.http.HttpStatus.NOT_FOUND
 
 enum class ErrorCode(
@@ -18,6 +19,8 @@ enum class ErrorCode(
     // Category
     CATEGORY_NOT_FOUND(NOT_FOUND, "Category not found"),
     CATEGORY_ITEM_NOT_FOUND(NOT_FOUND, "Category item not found"),
+    CATEGORY_ITEM_UPDATE_CONFLICT(CONFLICT, "Category item changed concurrently"),
+    INVALID_CATEGORY_ITEM_MOVE(BAD_REQUEST, "Invalid category item moving"),
     INVALID_CATEGORY_ITEM_ORDER(BAD_REQUEST, "Invalid category item ordering"),
     INVALID_CATEGORY_TYPE(BAD_REQUEST, "Invalid category type"),
 

@@ -1,13 +1,12 @@
 package com.blustar.grimault.domain.category.controller
 
 import com.blustar.grimault.domain.category.dto.CategoryItemResponse
+import com.blustar.grimault.domain.category.dto.UpdateCategoryItemRequest
 import com.blustar.grimault.domain.category.service.CategoryItemService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
-import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import jakarta.validation.Valid
+import org.springframework.web.bind.annotation.*
 
 @Tag(name = "Category", description = "카테고리 소분류 관리")
 @RestController
@@ -20,6 +19,15 @@ class CategoryItemController(
     @GetMapping("/{id}")
     fun findById(@PathVariable id: Int): CategoryItemResponse {
         return service.findById(id)
+    }
+
+    @Operation(summary = "상세 카테고리 수정")
+    @PatchMapping("/{id}")
+    fun update(
+        @PathVariable id: Int,
+        @Valid @RequestBody body: UpdateCategoryItemRequest,
+    ): CategoryItemResponse {
+        return service.update(id, body)
     }
 
 }
