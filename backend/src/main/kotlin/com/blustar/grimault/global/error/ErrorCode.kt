@@ -21,7 +21,7 @@ enum class ErrorCode(
     CATEGORY_ITEM_NOT_FOUND(NOT_FOUND, "Category item not found"),
     CATEGORY_ITEM_UPDATE_CONFLICT(CONFLICT, "Category item changed concurrently"),
     INVALID_CATEGORY_ITEM_MOVE(BAD_REQUEST, "Invalid category item moving"),
-    INVALID_CATEGORY_ITEM_ORDER(BAD_REQUEST, "Invalid category item ordering"),
+    INVALID_CATEGORY_ORDER(BAD_REQUEST, "Invalid category ordering"),
     INVALID_CATEGORY_TYPE(BAD_REQUEST, "Invalid category type"),
 
 }

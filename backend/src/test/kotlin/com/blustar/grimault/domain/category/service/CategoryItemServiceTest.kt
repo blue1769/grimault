@@ -297,7 +297,7 @@ class CategoryItemServiceTest {
         // Arrange: 입력 조건은 compactCases에서 제공한다.
 
         // Act
-        val result = CategoryItemReorderer.compact(pairs, removedItemId)
+        val result = CategoryReorderer.compact(pairs, removedItemId)
 
         // Assert
         assertFalse(result.containsKey(removedItemId))

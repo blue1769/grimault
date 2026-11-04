@@ -115,7 +115,7 @@ class CategoryItemService(
 
         val originItems = originGroup.items
 
-        val reordered = CategoryItemReorderer.compact(
+        val reordered = CategoryReorderer.compact(
             originItems.map { requireNotNull(it.id) to it.sortOrder },
             requireNotNull(item.id),
         )
