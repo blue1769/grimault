@@ -63,7 +63,7 @@ class CategoryItemService(
             )
         }
 
-        body.categoryId?.let { targetGroupId ->
+        val groupMove = body.categoryId?.let { targetGroupId ->
             if (targetGroupId == currentGroupId) {
                 throw GrimaultException(
                     ErrorCode.INVALID_CATEGORY_ITEM_MOVE,
@@ -71,15 +71,23 @@ class CategoryItemService(
                 )
             }
 
-            moveGroup(
-                item = item,
-                originGroup = groups.getValue(currentGroupId),
-                targetGroup = groups.getValue(targetGroupId),
-            )
+            prepareGroupMove(item, groups.getValue(targetGroupId))
+        }
+
+        if (groupMove != null) {
+            repository.deferOrderConstraint()
+            item.moveTo(groupMove.targetGroup)
+            item.reorder(groupMove.targetItemOrder)
         }
 
         body.name?.let { item.rename(it) }
         body.isFavorite?.let { item.favorite(it) }
+
+        if (groupMove != null) {
+            entityManager.flush()
+            repository.compact(groupMove.originGroupId, groupMove.originItemOrder)
+            entityManager.clear()
+        }
 
         return CategoryItemResponse.from(item)
     }
@@ -98,11 +106,12 @@ class CategoryItemService(
                 "Category not found: $groupId",
             )
 
-    private fun moveGroup(
-        item: CategoryItem,
-        originGroup: Category,
-        targetGroup: Category,
-    ) {
+    private fun getNextOrder(categoryId: Int): Int =
+        (repository.findMaxSortOrder(categoryId) ?: 0) + 1
+
+    private fun prepareGroupMove(item: CategoryItem, targetGroup: Category): GroupMove {
+        val originGroup = requireNotNull(item.category)
+
         if (originGroup.type != targetGroup.type) {
             throw GrimaultException(
                 ErrorCode.INVALID_CATEGORY_TYPE,
@@ -110,27 +119,19 @@ class CategoryItemService(
             )
         }
 
-        val targetGroupId = requireNotNull(targetGroup.id)
-        val targetItemOrder = getNextOrder(targetGroupId)
-
-        val originItems = originGroup.items
-
-        val reordered = CategoryReorderer.compact(
-            originItems.map { requireNotNull(it.id) to it.sortOrder },
-            requireNotNull(item.id),
+        return GroupMove(
+            originGroupId = requireNotNull(originGroup.id),
+            originItemOrder = item.sortOrder,
+            targetGroup = targetGroup,
+            targetItemOrder = getNextOrder(requireNotNull(targetGroup.id)),
         )
-
-        repository.deferOrderConstraint()
-
-        originItems.forEach { sibling ->
-            reordered[sibling.id]?.let { sibling.reorder(it) }
-        }
-
-        item.moveTo(targetGroup)
-        item.reorder(targetItemOrder)
     }
 
-    private fun getNextOrder(categoryId: Int): Int =
-        (repository.findMaxSortOrder(categoryId) ?: 0) + 1
+    private data class GroupMove(
+        val originGroupId: Int,
+        val originItemOrder: Int,
+        val targetGroup: Category,
+        val targetItemOrder: Int,
+    )
 
 }

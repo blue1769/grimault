@@ -234,6 +234,9 @@ class CategoryItemServiceTest {
         every { entityManager.refresh(item) } just Runs
         every { repository.findMaxSortOrder(2) } returns 3
         every { repository.deferOrderConstraint() } just Runs
+        every { entityManager.flush() } just Runs
+        every { repository.compact(1, 2) } returns 0
+        every { entityManager.clear() } just Runs
 
         // Act
         val response = service.update(10, UpdateCategoryItemRequest(categoryId = 2))
@@ -246,8 +249,6 @@ class CategoryItemServiceTest {
         assertFalse(item.isActive)
         assertTrue(item.isFavorite)
         assertEquals(CategoryItemResponse(10, 2, "식자재", false, 4, true), response)
-        assertEquals(1, sibling.sortOrder)
-        assertEquals(2, following.sortOrder)
         verifySequence {
             repository.findById(10)
             groupRepository.findByIdForUpdate(1)
@@ -255,6 +256,9 @@ class CategoryItemServiceTest {
             entityManager.refresh(item)
             repository.findMaxSortOrder(2)
             repository.deferOrderConstraint()
+            entityManager.flush()
+            repository.compact(1, 2)
+            entityManager.clear()
         }
     }
 
@@ -272,6 +276,9 @@ class CategoryItemServiceTest {
         every { entityManager.refresh(item) } just Runs
         every { repository.findMaxSortOrder(2) } returns null
         every { repository.deferOrderConstraint() } just Runs
+        every { entityManager.flush() } just Runs
+        every { repository.compact(1, 1) } returns 0
+        every { entityManager.clear() } just Runs
 
         // Act
         val response = service.update(10, UpdateCategoryItemRequest(categoryId = 2))
@@ -284,7 +291,17 @@ class CategoryItemServiceTest {
         assertFalse(item.isActive)
         assertTrue(item.isFavorite)
         assertEquals(CategoryItemResponse(10, 2, "식자재", false, 1, true), response)
-        assertTrue(origin.items.filter { it.category.id == origin.id }.isEmpty())
+        verifySequence {
+            repository.findById(10)
+            groupRepository.findByIdForUpdate(1)
+            groupRepository.findByIdForUpdate(2)
+            entityManager.refresh(item)
+            repository.findMaxSortOrder(2)
+            repository.deferOrderConstraint()
+            entityManager.flush()
+            repository.compact(1, 1)
+            entityManager.clear()
+        }
     }
 
     @ParameterizedTest
@@ -304,8 +321,52 @@ class CategoryItemServiceTest {
         assertEquals(expected, result)
     }
 
+    @ParameterizedTest
+    @CsvSource("1, 2, 10, 1", "2, 1, 20, 2", "3, 5, 40, 4", "5, 3, 10, 1")
+    fun `제거 위치에 따라 올바른 순번 압축 조건을 전달한다`(
+        originGroupId: Int,
+        targetGroupId: Int,
+        itemId: Int,
+        removedOrder: Int,
+    ) {
+        // Arrange
+        val origin = Category(id = originGroupId, type = CategoryType.EXPENSE, name = "출발지", sortOrder = 1)
+        val target = Category(id = targetGroupId, type = CategoryType.EXPENSE, name = "목적지", sortOrder = 2)
+        val item = CategoryItem(id = itemId, category = origin, name = "이동 대상", sortOrder = removedOrder)
+        val targetMaxOrder = 4
+        every { repository.findById(itemId) } returns Optional.of(item)
+        every { groupRepository.findByIdForUpdate(originGroupId) } returns origin
+        every { groupRepository.findByIdForUpdate(targetGroupId) } returns target
+        every { entityManager.refresh(item) } just Runs
+        every { repository.findMaxSortOrder(targetGroupId) } returns targetMaxOrder
+        every { repository.deferOrderConstraint() } just Runs
+        every { entityManager.flush() } just Runs
+        every { repository.compact(originGroupId, removedOrder) } returns 0
+        every { entityManager.clear() } just Runs
+
+        // Act
+        val response = service.update(itemId, UpdateCategoryItemRequest(categoryId = targetGroupId))
+
+        // Assert
+        assertSame(target, item.category)
+        assertEquals(targetMaxOrder + 1, item.sortOrder)
+        assertEquals(CategoryItemResponse(itemId, targetGroupId, "이동 대상", true, targetMaxOrder + 1, false), response)
+        verifySequence {
+            repository.findById(itemId)
+            groupRepository.findByIdForUpdate(minOf(originGroupId, targetGroupId))
+            groupRepository.findByIdForUpdate(maxOf(originGroupId, targetGroupId))
+            entityManager.refresh(item)
+            repository.findMaxSortOrder(targetGroupId)
+            repository.deferOrderConstraint()
+            entityManager.flush()
+            repository.compact(originGroupId, removedOrder)
+            entityManager.clear()
+        }
+        verify(exactly = 1) { repository.compact(any(), any()) }
+    }
+
     @Test
-    fun `중간 소분류를 이동하면 출발지 형제 항목의 순번이 갱신된다`() {
+    fun `중간 소분류를 이동하면 Bulk Update를 올바른 순서로 실행한다`() {
         // Arrange
         val originItems = mutableListOf<CategoryItem>()
         val origin = Category(id = 1, type = CategoryType.EXPENSE, name = "출발지", sortOrder = 1, items = originItems)
@@ -319,23 +380,45 @@ class CategoryItemServiceTest {
         every { groupRepository.findByIdForUpdate(2) } returns target
         every { entityManager.refresh(b) } just Runs
         every { repository.findMaxSortOrder(2) } returns 2
-        every { repository.deferOrderConstraint() } just Runs
+        every { repository.deferOrderConstraint() } answers {
+            assertSame(origin, b.category)
+            assertEquals(2, b.sortOrder)
+            assertEquals("B", b.name)
+            assertTrue(b.isFavorite)
+        }
+        every { entityManager.flush() } answers {
+            assertSame(target, b.category)
+            assertEquals(3, b.sortOrder)
+            assertEquals("변경된 B", b.name)
+            assertFalse(b.isFavorite)
+            assertEquals(20, b.id)
+            assertFalse(b.isActive)
+        }
+        every { repository.compact(1, 2) } returns 0
+        every { entityManager.clear() } just Runs
 
         // Act
-        val response = service.update(20, UpdateCategoryItemRequest(categoryId = 2))
+        val response = service.update(20, UpdateCategoryItemRequest(categoryId = 2, name = "변경된 B", isFavorite = false))
 
         // Assert
-        assertEquals(1, a.sortOrder)
-        assertEquals(2, c.sortOrder)
         assertSame(origin, a.category)
         assertSame(origin, c.category)
         assertSame(target, b.category)
         assertEquals(3, b.sortOrder)
-        assertEquals(CategoryItemResponse(10, 1, "A", false, 1, true), CategoryItemResponse.from(a))
-        assertEquals(CategoryItemResponse(20, 2, "B", false, 3, true), CategoryItemResponse.from(b))
-        assertEquals(CategoryItemResponse(30, 1, "C", true, 2, false), CategoryItemResponse.from(c))
+        assertEquals(CategoryItemResponse(20, 2, "변경된 B", false, 3, false), CategoryItemResponse.from(b))
         assertEquals(CategoryItemResponse.from(b), response)
-        verify(exactly = 1) { repository.deferOrderConstraint() }
+        verifySequence {
+            repository.findById(20)
+            groupRepository.findByIdForUpdate(1)
+            groupRepository.findByIdForUpdate(2)
+            entityManager.refresh(b)
+            repository.findMaxSortOrder(2)
+            repository.deferOrderConstraint()
+            entityManager.flush()
+            repository.compact(1, 2)
+            entityManager.clear()
+        }
+        verify(exactly = 1) { repository.compact(any(), any()) }
     }
 
     @Test
@@ -374,6 +457,9 @@ class CategoryItemServiceTest {
         verify(exactly = 1) { item.moveTo(target) }
         verify(exactly = 0) { repository.findMaxSortOrder(any()) }
         verify(exactly = 0) { repository.deferOrderConstraint() }
+        verify(exactly = 0) { repository.compact(any(), any()) }
+        verify(exactly = 0) { entityManager.flush() }
+        verify(exactly = 0) { entityManager.clear() }
     }
 
 

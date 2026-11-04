@@ -17,6 +17,18 @@ interface CategoryItemRepository : JpaRepository<CategoryItem, Int> {
     fun findMaxSortOrder(@Param("categoryId") categoryId: Int): Int?
 
     @Modifying
+    @Query("""
+        UPDATE CategoryItem i
+        SET i.sortOrder = i.sortOrder - 1
+        WHERE i.category.id = :categoryId
+        AND i.sortOrder > :removedOrder
+    """)
+    fun compact(
+        @Param("categoryId") categoryId: Int,
+        @Param("removedOrder") removedOrder: Int,
+    ): Int
+
+    @Modifying
     @NativeQuery("""
         SET CONSTRAINTS uq_category_item_sort_order DEFERRED
     """)
