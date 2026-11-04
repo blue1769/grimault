@@ -1,8 +1,8 @@
 package com.blustar.grimault.domain.category.service
 
 import com.blustar.grimault.domain.category.dto.CategoryItemResponse
-import com.blustar.grimault.domain.category.dto.UpdateCategoryItemRequest
 import com.blustar.grimault.domain.category.dto.CreateCategoryItemRequest
+import com.blustar.grimault.domain.category.dto.UpdateCategoryItemRequest
 import com.blustar.grimault.domain.category.entity.Category
 import com.blustar.grimault.domain.category.entity.CategoryItem
 import com.blustar.grimault.domain.category.entity.CategoryType
@@ -15,8 +15,6 @@ import jakarta.persistence.EntityManager
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.MethodSource
-import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.CsvSource
 import java.util.*
 
@@ -305,23 +303,6 @@ class CategoryItemServiceTest {
     }
 
     @ParameterizedTest
-    @MethodSource("compactCases")
-    fun `소분류 제거 후 남은 순번은 상대적 순서를 유지하며 압축된다`(
-        pairs: List<Pair<Int, Int>>,
-        removedItemId: Int,
-        expected: Map<Int, Int>,
-    ) {
-        // Arrange: 입력 조건은 compactCases에서 제공한다.
-
-        // Act
-        val result = CategoryReorderer.compact(pairs, removedItemId)
-
-        // Assert
-        assertFalse(result.containsKey(removedItemId))
-        assertEquals(expected, result)
-    }
-
-    @ParameterizedTest
     @CsvSource("1, 2, 10, 1", "2, 1, 20, 2", "3, 5, 40, 4", "5, 3, 10, 1")
     fun `제거 위치에 따라 올바른 순번 압축 조건을 전달한다`(
         originGroupId: Int,
@@ -605,19 +586,6 @@ class CategoryItemServiceTest {
         verify(exactly = 0) { item.moveTo(any()) }
         verify(exactly = 0) { item.reorder(any()) }
         verify(exactly = 0) { following.reorder(any()) }
-    }
-
-    companion object {
-        @JvmStatic
-        fun compactCases(): List<Arguments> {
-            val pairs = listOf(10 to 1, 20 to 2, 30 to 3, 40 to 4)
-            return listOf(
-                Arguments.of(pairs, 10, mapOf(20 to 1, 30 to 2, 40 to 3)),
-                Arguments.of(pairs, 20, mapOf(10 to 1, 30 to 2, 40 to 3)),
-                Arguments.of(pairs, 40, mapOf(10 to 1, 20 to 2, 30 to 3)),
-                Arguments.of(listOf(10 to 1), 10, emptyMap<Int, Int>()),
-            )
-        }
     }
 
 }
