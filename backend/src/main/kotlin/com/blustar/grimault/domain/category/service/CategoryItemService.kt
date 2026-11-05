@@ -2,6 +2,7 @@ package com.blustar.grimault.domain.category.service
 
 import com.blustar.grimault.domain.category.dto.CategoryItemResponse
 import com.blustar.grimault.domain.category.dto.CreateCategoryItemRequest
+import com.blustar.grimault.domain.category.dto.ReorderCategoryEntryRequest
 import com.blustar.grimault.domain.category.dto.UpdateCategoryItemRequest
 import com.blustar.grimault.domain.category.entity.Category
 import com.blustar.grimault.domain.category.entity.CategoryItem
@@ -31,7 +32,7 @@ class CategoryItemService(
         categoryId: Int,
         body: CreateCategoryItemRequest,
     ): CategoryItemResponse {
-        val category = findGroup(categoryId)
+        val category = findGroupWithLock(categoryId)
         val nextSortOrder = getNextOrder(categoryId)
         val item = repository.save(body.toEntity(category, nextSortOrder))
 
@@ -49,7 +50,7 @@ class CategoryItemService(
         val groups = listOfNotNull(observedGroupId, body.categoryId)
             .distinct()
             .sorted()
-            .map { findGroup(it) }
+            .map { findGroupWithLock(it) }
             .associateBy { requireNotNull(it.id) }
 
         entityManager.refresh(item)
@@ -92,6 +93,54 @@ class CategoryItemService(
         return CategoryItemResponse.from(item)
     }
 
+    @Transactional
+    fun reorder(id: Int, body: ReorderCategoryEntryRequest): CategoryItemResponse {
+        val item = find(id)
+        val observedGroupId = requireNotNull(item.category.id)
+
+        findGroupWithLock(observedGroupId)
+
+        entityManager.refresh(item)
+
+        val currentGroupId = requireNotNull(item.category.id)
+
+        if (currentGroupId != observedGroupId) {
+            throw GrimaultException(
+                ErrorCode.CATEGORY_ITEM_UPDATE_CONFLICT,
+                "Category item moved concurrently: $id",
+            )
+        }
+
+        val target = body.sortOrder
+        val maxOrder = getMaxOrder(observedGroupId)
+
+        if (target > maxOrder) {
+            throw GrimaultException(
+                ErrorCode.INVALID_CATEGORY_ORDER,
+                "Target sort order exceeds maximum allowed value: $target (max: $maxOrder)",
+            )
+        }
+
+        val current = item.sortOrder
+
+        if (current == target) {
+            return CategoryItemResponse.from(item)
+        }
+
+        repository.deferOrderConstraint()
+
+        entityManager.flush()
+
+        when {
+            current < target -> repository.reorderForward(id, currentGroupId, current, target)
+            else -> repository.reorderBackward(id, currentGroupId, current, target)
+        }
+
+        entityManager.clear()
+
+        return CategoryItemResponse.from(find(id))
+    }
+
     private fun find(id: Int): CategoryItem =
         repository.findByIdOrNull(id)
             ?: throw GrimaultException(
@@ -99,15 +148,18 @@ class CategoryItemService(
                 "Category item not found: $id",
             )
 
-    private fun findGroup(groupId: Int): Category =
+    private fun findGroupWithLock(groupId: Int): Category =
         groupRepository.findByIdForUpdate(groupId)
             ?: throw GrimaultException(
                 ErrorCode.CATEGORY_NOT_FOUND,
                 "Category not found: $groupId",
             )
 
+    private fun getMaxOrder(categoryId: Int): Int =
+        repository.findMaxSortOrder(categoryId) ?: 0
+
     private fun getNextOrder(categoryId: Int): Int =
-        (repository.findMaxSortOrder(categoryId) ?: 0) + 1
+        getMaxOrder(categoryId) + 1
 
     private fun prepareGroupMove(item: CategoryItem, targetGroup: Category): GroupMove {
         val originGroup = requireNotNull(item.category)
