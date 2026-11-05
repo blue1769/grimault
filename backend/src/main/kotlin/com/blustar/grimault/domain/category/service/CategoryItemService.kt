@@ -44,25 +44,10 @@ class CategoryItemService(
         id: Int,
         body: UpdateCategoryItemRequest,
     ): CategoryItemResponse {
-        val item = find(id)
-        val observedGroupId = requireNotNull(item.category.id)
-
-        val groups = listOfNotNull(observedGroupId, body.categoryId)
-            .distinct()
-            .sorted()
-            .map { findGroupWithLock(it) }
-            .associateBy { requireNotNull(it.id) }
-
-        entityManager.refresh(item)
-
+        val lockedItem = findWithGroupLocks(id, body.categoryId)
+        val item = lockedItem.item
+        val groups = lockedItem.groups
         val currentGroupId = requireNotNull(item.category.id)
-
-        if (currentGroupId != observedGroupId) {
-            throw GrimaultException(
-                ErrorCode.CATEGORY_ITEM_UPDATE_CONFLICT,
-                "Category item moved concurrently: $id",
-            )
-        }
 
         val groupMove = body.categoryId?.let { targetGroupId ->
             if (targetGroupId == currentGroupId) {
@@ -95,24 +80,10 @@ class CategoryItemService(
 
     @Transactional
     fun reorder(id: Int, body: ReorderCategoryEntryRequest): CategoryItemResponse {
-        val item = find(id)
-        val observedGroupId = requireNotNull(item.category.id)
-
-        findGroupWithLock(observedGroupId)
-
-        entityManager.refresh(item)
-
+        val item = findWithGroupLocks(id).item
         val currentGroupId = requireNotNull(item.category.id)
-
-        if (currentGroupId != observedGroupId) {
-            throw GrimaultException(
-                ErrorCode.CATEGORY_ITEM_UPDATE_CONFLICT,
-                "Category item moved concurrently: $id",
-            )
-        }
-
         val target = body.sortOrder
-        val maxOrder = getMaxOrder(observedGroupId)
+        val maxOrder = getMaxOrder(currentGroupId)
 
         if (target > maxOrder) {
             throw GrimaultException(
@@ -143,21 +114,7 @@ class CategoryItemService(
 
     @Transactional
     fun changeActiveStatus(id: Int, active: Boolean): CategoryItemResponse {
-        val item = find(id)
-        val observedGroupId = requireNotNull(item.category.id)
-
-        findGroupWithLock(observedGroupId)
-
-        entityManager.refresh(item)
-
-        val currentGroupId = requireNotNull(item.category.id)
-
-        if (currentGroupId != observedGroupId) {
-            throw GrimaultException(
-                ErrorCode.CATEGORY_ITEM_UPDATE_CONFLICT,
-                "Category item moved concurrently: $id",
-            )
-        }
+        val item = findWithGroupLocks(id).item
 
         if (active) item.activate() else item.deactivate()
 
@@ -184,6 +141,36 @@ class CategoryItemService(
     private fun getNextOrder(categoryId: Int): Int =
         getMaxOrder(categoryId) + 1
 
+    private fun findWithGroupLocks(
+        id: Int,
+        targetGroupId: Int? = null,
+    ): LockedItem {
+        val item = find(id)
+        val observedGroupId = requireNotNull(item.category.id)
+
+        val groups = listOfNotNull(observedGroupId, targetGroupId)
+            .distinct()
+            .sorted()
+            .map { findGroupWithLock(it) }
+            .associateBy { requireNotNull(it.id) }
+
+        entityManager.refresh(item)
+
+        val currentGroupId = requireNotNull(item.category.id)
+
+        if (currentGroupId != observedGroupId) {
+            throw GrimaultException(
+                ErrorCode.CATEGORY_ITEM_UPDATE_CONFLICT,
+                "Category item moved concurrently: $id",
+            )
+        }
+
+        return LockedItem(
+            item = item,
+            groups = groups,
+        )
+    }
+
     private fun prepareGroupMove(item: CategoryItem, targetGroup: Category): GroupMove {
         val originGroup = requireNotNull(item.category)
 
@@ -201,6 +188,11 @@ class CategoryItemService(
             targetItemOrder = getNextOrder(requireNotNull(targetGroup.id)),
         )
     }
+
+    private data class LockedItem(
+        val item: CategoryItem,
+        val groups: Map<Int, Category>,
+    )
 
     private data class GroupMove(
         val originGroupId: Int,
