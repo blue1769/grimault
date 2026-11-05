@@ -1,5 +1,7 @@
 package com.blustar.grimault.domain.category.service
 
+import com.blustar.grimault.domain.category.dto.CategoryResponse
+import com.blustar.grimault.domain.category.dto.ReorderCategoryEntryRequest
 import com.blustar.grimault.domain.category.dto.CreateCategoryRequest
 import com.blustar.grimault.domain.category.dto.UpdateCategoryRequest
 import com.blustar.grimault.domain.category.entity.Category
@@ -153,5 +155,165 @@ class CategoryServiceTest {
         // Assert
         assertEquals(ErrorCode.INVALID_CATEGORY_TYPE, exception.errorCode)
         verify(exactly = 0) { queryRepository.findAll(any(), any()) }
+    }
+
+    @Test
+    fun `앞에서 뒤로 이동하면 Forward 재정렬을 수행한다`() {
+        // Arrange
+        val id = 10
+        val category = Category(id = id, type = CategoryType.EXPENSE, name = "식비", sortOrder = 2)
+        val reordered = Category(id = id, type = CategoryType.EXPENSE, name = "식비", sortOrder = 4)
+        val body = ReorderCategoryEntryRequest(sortOrder = 4)
+        every { orderLockRepository.lock() } just Runs
+        every { repository.findMaxSortOrder() } returns 5
+        every { repository.findById(id) } returnsMany listOf(Optional.of(category), Optional.of(reordered))
+        every { repository.deferOrderConstraint() } just Runs
+        every { entityManager.flush() } just Runs
+        every { repository.reorderForward(id, 2, 4) } returns 3
+        every { entityManager.clear() } just Runs
+
+        // Act
+        val response = service.reorder(id = id, body = body)
+
+        // Assert
+        assertEquals(4, response.sortOrder)
+        verifySequence {
+            orderLockRepository.lock()
+            repository.findMaxSortOrder()
+            repository.findById(id)
+            repository.deferOrderConstraint()
+            entityManager.flush()
+            repository.reorderForward(id, 2, 4)
+            entityManager.clear()
+            repository.findById(id)
+        }
+        verify(exactly = 0) { repository.reorderBackward(any(), any(), any()) }
+    }
+
+    @Test
+    fun `뒤에서 앞으로 이동하면 Backward 재정렬을 수행한다`() {
+        // Arrange
+        val id = 10
+        val category = Category(id = id, type = CategoryType.EXPENSE, name = "식비", sortOrder = 4)
+        val reordered = Category(id = id, type = CategoryType.EXPENSE, name = "식비", sortOrder = 2)
+        val body = ReorderCategoryEntryRequest(sortOrder = 2)
+        every { orderLockRepository.lock() } just Runs
+        every { repository.findMaxSortOrder() } returns 5
+        every { repository.findById(id) } returnsMany listOf(Optional.of(category), Optional.of(reordered))
+        every { repository.deferOrderConstraint() } just Runs
+        every { entityManager.flush() } just Runs
+        every { repository.reorderBackward(id, 4, 2) } returns 3
+        every { entityManager.clear() } just Runs
+
+        // Act
+        val response = service.reorder(id = id, body = body)
+
+        // Assert
+        assertEquals(2, response.sortOrder)
+        verifySequence {
+            orderLockRepository.lock()
+            repository.findMaxSortOrder()
+            repository.findById(id)
+            repository.deferOrderConstraint()
+            entityManager.flush()
+            repository.reorderBackward(id, 4, 2)
+            entityManager.clear()
+            repository.findById(id)
+        }
+        verify(exactly = 0) { repository.reorderForward(any(), any(), any()) }
+    }
+
+    @Test
+    fun `동일 순번 요청은 변경 없이 정상 처리한다`() {
+        // Arrange
+        val id = 10
+        val category = Category(
+            id = id,
+            type = CategoryType.EXPENSE,
+            name = "식비",
+            isActive = false,
+            sortOrder = 3,
+        )
+        val body = ReorderCategoryEntryRequest(sortOrder = 3)
+        every { orderLockRepository.lock() } just Runs
+        every { repository.findMaxSortOrder() } returns 5
+        every { repository.findById(id) } returns Optional.of(category)
+
+        // Act
+        val response = service.reorder(id = id, body = body)
+
+        // Assert
+        assertEquals(CategoryResponse(id, CategoryType.EXPENSE, "식비", false, 3), response)
+        verifySequence {
+            orderLockRepository.lock()
+            repository.findMaxSortOrder()
+            repository.findById(id)
+        }
+        verify(exactly = 0) {
+            repository.deferOrderConstraint()
+            repository.reorderForward(any(), any(), any())
+            repository.reorderBackward(any(), any(), any())
+            entityManager.flush()
+            entityManager.clear()
+        }
+    }
+
+    @Test
+    fun `목표 순번이 최대 순번을 초과하면 예외를 발생시킨다`() {
+        // Arrange
+        val id = 10
+        val body = ReorderCategoryEntryRequest(sortOrder = 6)
+        every { orderLockRepository.lock() } just Runs
+        every { repository.findMaxSortOrder() } returns 5
+
+        // Act
+        val exception = assertThrows(GrimaultException::class.java) {
+            service.reorder(id = id, body = body)
+        }
+
+        // Assert
+        assertEquals(ErrorCode.INVALID_CATEGORY_ORDER, exception.errorCode)
+        verifySequence {
+            orderLockRepository.lock()
+            repository.findMaxSortOrder()
+        }
+        verify(exactly = 0) {
+            repository.findById(any())
+            repository.deferOrderConstraint()
+            repository.reorderForward(any(), any(), any())
+            repository.reorderBackward(any(), any(), any())
+            entityManager.flush()
+            entityManager.clear()
+        }
+    }
+
+    @Test
+    fun `존재하지 않는 대분류의 순번은 변경할 수 없다`() {
+        // Arrange
+        val id = 999
+        val body = ReorderCategoryEntryRequest(sortOrder = 2)
+        every { orderLockRepository.lock() } just Runs
+        every { repository.findMaxSortOrder() } returns 5
+        every { repository.findById(id) } returns Optional.empty()
+
+        // Act
+        val exception = assertThrows(GrimaultException::class.java) {
+            service.reorder(id = id, body = body)
+        }
+
+        // Assert
+        assertEquals(ErrorCode.CATEGORY_NOT_FOUND, exception.errorCode)
+        verifySequence {
+            orderLockRepository.lock()
+            repository.findMaxSortOrder()
+            repository.findById(id)
+        }
+        verify(exactly = 0) {
+            repository.deferOrderConstraint()
+            repository.reorderForward(any(), any(), any())
+            repository.reorderBackward(any(), any(), any())
+            entityManager.flush()
+            entityManager.clear()
+        }
     }
 }
