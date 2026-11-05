@@ -16,6 +16,7 @@ import io.mockk.Runs
 import io.mockk.slot
 import io.mockk.verifySequence
 import io.mockk.verify
+import jakarta.persistence.EntityManager
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -30,8 +31,9 @@ class CategoryServiceTest {
     private val repository = mockk<CategoryRepository>()
     private val queryRepository = mockk<CategoryTreeQueryRepository>()
     private val orderLockRepository = mockk<CategoryOrderLockRepository>()
+    private val entityManager = mockk<EntityManager>()
 
-    private val service = CategoryService(repository, queryRepository, orderLockRepository)
+    private val service = CategoryService(repository, queryRepository, orderLockRepository, entityManager)
 
     @ParameterizedTest
     @CsvSource("null, 1", "1, 2", "5, 6", nullValues = ["null"])

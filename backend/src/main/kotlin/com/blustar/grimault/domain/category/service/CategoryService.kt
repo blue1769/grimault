@@ -9,6 +9,7 @@ import com.blustar.grimault.domain.category.repository.CategoryRepository
 import com.blustar.grimault.domain.category.repository.CategoryTreeQueryRepository
 import com.blustar.grimault.global.error.ErrorCode
 import com.blustar.grimault.global.error.GrimaultException
+import jakarta.persistence.EntityManager
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -19,6 +20,7 @@ class CategoryService(
     private val repository: CategoryRepository,
     private val queryRepository: CategoryTreeQueryRepository,
     private val orderLockRepository: CategoryOrderLockRepository,
+    private val entityManager: EntityManager,
 ) {
 
     fun findAll(
@@ -36,8 +38,7 @@ class CategoryService(
     }
 
     fun findById(id: Int): CategoryResponse {
-        val category = repository.findByIdOrNull(id)
-            ?: throw GrimaultException(ErrorCode.CATEGORY_NOT_FOUND, "Category not found: $id")
+        val category = find(id)
 
         return CategoryResponse.from(category)
     }
@@ -46,9 +47,7 @@ class CategoryService(
     fun create(body: CreateCategoryRequest): CategoryResponse {
         orderLockRepository.lock()
 
-        val maxSortOrder = repository.findMaxSortOrder() ?: 0
-        val nextSortOrder = maxSortOrder + 1
-
+        val nextSortOrder = getMaxOrder() + 1
         val category = repository.save(body.toEntity(nextSortOrder))
 
         return CategoryResponse.from(category)
@@ -56,13 +55,59 @@ class CategoryService(
 
     @Transactional
     fun update(id: Int, body: UpdateCategoryRequest): CategoryResponse {
-        val category = repository.findByIdOrNull(id)
-            ?: throw GrimaultException(ErrorCode.CATEGORY_NOT_FOUND, "Category not found: $id")
+        orderLockRepository.lock()
+
+        val category = find(id)
 
         category.rename(body.name)
 
         return CategoryResponse.from(category)
     }
+
+    @Transactional
+    fun reorder(id: Int, body: ReorderCategoryEntryRequest): CategoryResponse {
+        orderLockRepository.lock()
+
+        val target = body.sortOrder
+        val maxOrder = getMaxOrder()
+
+        if (target > maxOrder) {
+            throw GrimaultException(
+                ErrorCode.INVALID_CATEGORY_ORDER,
+                "Target sort order exceeds maximum allowed value: $target (max: $maxOrder)",
+            )
+        }
+
+        val category = find(id)
+        val current = category.sortOrder
+
+        if (current == target) {
+            return CategoryResponse.from(category)
+        }
+
+        repository.deferOrderConstraint()
+
+        entityManager.flush()
+
+        when {
+            current < target -> repository.reorderForward(id, current, target)
+            else -> repository.reorderBackward(id, current, target)
+        }
+
+        entityManager.clear()
+
+        return CategoryResponse.from(find(id))
+    }
+
+    private fun find(id: Int): Category =
+        repository.findByIdOrNull(id)
+            ?: throw GrimaultException(
+                ErrorCode.CATEGORY_NOT_FOUND,
+                "Category not found: $id",
+            )
+
+    private fun getMaxOrder(): Int =
+        repository.findMaxSortOrder() ?: 0
 
     private fun List<Pair<Category, CategoryItem?>>.toResponses(
         itemMapper: (CategoryItem) -> CategoryTreeItemResponse,

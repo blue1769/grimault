@@ -75,4 +75,13 @@ class CategoryController(
         return service.update(id, body)
     }
 
+    @Operation(summary = "카테고리 그룹 순번 변경")
+    @PatchMapping("/{id}/order")
+    fun reorder(
+        @PathVariable id: Int,
+        @Valid @RequestBody body: ReorderCategoryEntryRequest,
+    ): CategoryResponse {
+        return service.reorder(id, body)
+    }
+
 }

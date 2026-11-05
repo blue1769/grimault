@@ -18,8 +18,7 @@ class Category(
     @Column(name = "is_active")
     val isActive: Boolean = true,
 
-    @Column(name = "sort_order")
-    val sortOrder: Int,
+    sortOrder: Int,
 
     @OneToMany(mappedBy = "category", fetch = FetchType.LAZY)
     val items: List<CategoryItem> = emptyList(),
@@ -27,6 +26,10 @@ class Category(
 
     @Column(name = "name")
     var name: String = name
+        protected set
+
+    @Column(name = "sort_order")
+    var sortOrder: Int = sortOrder
         protected set
 
     fun rename(newName: String) {
