@@ -13,12 +13,12 @@ interface CategoryRepository : JpaRepository<Category, Int> {
     @Modifying
     @Query("""
         UPDATE Category c
-        SET sortOrder = CASE
-            WHEN id = :id THEN :target
-            ELSE sortOrder - 1
+        SET c.sortOrder = CASE
+            WHEN c.id = :id THEN :target
+            ELSE c.sortOrder - 1
         END
-        WHERE id = :id
-        OR sortOrder BETWEEN :current + 1 AND :target
+        WHERE c.id = :id
+        OR c.sortOrder BETWEEN :current + 1 AND :target
     """)
     fun reorderForward(
         @Param("id") id: Int,
@@ -29,12 +29,12 @@ interface CategoryRepository : JpaRepository<Category, Int> {
     @Modifying
     @Query("""
         UPDATE Category c
-        SET sortOrder = CASE
-            WHEN id = :id THEN :target
-            ELSE sortOrder + 1
+        SET c.sortOrder = CASE
+            WHEN c.id = :id THEN :target
+            ELSE c.sortOrder + 1
         END
-        WHERE id = :id
-        OR sortOrder BETWEEN :target AND :current - 1
+        WHERE c.id = :id
+        OR c.sortOrder BETWEEN :target AND :current - 1
     """)
     fun reorderBackward(
         @Param("id") id: Int,
