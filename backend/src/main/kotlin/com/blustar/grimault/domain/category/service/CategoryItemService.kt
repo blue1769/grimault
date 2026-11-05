@@ -141,6 +141,29 @@ class CategoryItemService(
         return CategoryItemResponse.from(find(id))
     }
 
+    @Transactional
+    fun changeActiveStatus(id: Int, active: Boolean): CategoryItemResponse {
+        val item = find(id)
+        val observedGroupId = requireNotNull(item.category.id)
+
+        findGroupWithLock(observedGroupId)
+
+        entityManager.refresh(item)
+
+        val currentGroupId = requireNotNull(item.category.id)
+
+        if (currentGroupId != observedGroupId) {
+            throw GrimaultException(
+                ErrorCode.CATEGORY_ITEM_UPDATE_CONFLICT,
+                "Category item moved concurrently: $id",
+            )
+        }
+
+        if (active) item.activate() else item.deactivate()
+
+        return CategoryItemResponse.from(item)
+    }
+
     private fun find(id: Int): CategoryItem =
         repository.findByIdOrNull(id)
             ?: throw GrimaultException(

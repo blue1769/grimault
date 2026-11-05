@@ -13,8 +13,7 @@ class CategoryItem(
 
     name: String,
 
-    @Column(name = "is_active")
-    val isActive: Boolean = true,
+    isActive: Boolean = true,
 
     sortOrder: Int,
 
@@ -28,6 +27,10 @@ class CategoryItem(
 
     @Column(name = "name")
     var name: String = name
+        protected set
+
+    @Column(name = "is_active")
+    var isActive: Boolean = isActive
         protected set
 
     @Column(name = "sort_order")
@@ -44,6 +47,14 @@ class CategoryItem(
 
     fun rename(newName: String) {
         name = newName
+    }
+
+    fun activate() {
+        isActive = true
+    }
+
+    fun deactivate() {
+        isActive = false
     }
 
     fun reorder(newOrder: Int) {

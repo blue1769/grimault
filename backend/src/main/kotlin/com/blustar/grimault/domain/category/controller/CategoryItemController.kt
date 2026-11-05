@@ -7,6 +7,7 @@ import com.blustar.grimault.domain.category.service.CategoryItemService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.*
 
 @Tag(name = "Category", description = "상세 카테고리 관리")
@@ -38,6 +39,20 @@ class CategoryItemController(
         @Valid @RequestBody body: ReorderCategoryEntryRequest,
     ): CategoryItemResponse {
         return service.reorder(id, body)
+    }
+
+    @Operation(summary = "상세 카테고리 활성화")
+    @PostMapping("/{id}/activate")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun activate(@PathVariable id: Int) {
+        service.changeActiveStatus(id, active = true)
+    }
+
+    @Operation(summary = "상세 카테고리 비활성화")
+    @PostMapping("/{id}/deactivate")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    fun deactivate(@PathVariable id: Int) {
+        service.changeActiveStatus(id, active = false)
     }
 
 }
