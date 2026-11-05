@@ -99,6 +99,17 @@ class CategoryService(
         return CategoryResponse.from(find(id))
     }
 
+    @Transactional
+    fun changeActiveStatus(id: Int, active: Boolean): CategoryResponse {
+        orderLockRepository.lock()
+
+        val category = find(id)
+
+        if (active) category.activate() else category.deactivate()
+
+        return CategoryResponse.from(category)
+    }
+
     private fun find(id: Int): Category =
         repository.findByIdOrNull(id)
             ?: throw GrimaultException(
