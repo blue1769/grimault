@@ -89,6 +89,7 @@ class CategoryServiceTest {
             sortOrder = 3,
         )
         val body = UpdateCategoryRequest(name = "외식비")
+        every { orderLockRepository.lock() } just Runs
         every { repository.findById(id) } returns Optional.of(category)
 
         // Act
@@ -112,6 +113,7 @@ class CategoryServiceTest {
         // Arrange
         val id = 999
         val body = UpdateCategoryRequest(name = "외식비")
+        every { orderLockRepository.lock() } just Runs
         every { repository.findById(id) } returns Optional.empty()
 
         // Act
