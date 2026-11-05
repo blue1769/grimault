@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 
-@Tag(name = "category", description = "카테고리 관리")
+@Tag(name = "Category", description = "카테고리 그룹 관리")
 @RestController
 @RequestMapping("/categories")
 class CategoryController(
@@ -27,7 +27,7 @@ class CategoryController(
         return service.findAll(type, selectableOnly)
     }
 
-    @Operation(summary = "단일 분류 조회")
+    @Operation(summary = "단일 대분류 조회")
     @GetMapping("/{id}")
     fun findById(@PathVariable id: Int): CategoryResponse {
         return service.findById(id)

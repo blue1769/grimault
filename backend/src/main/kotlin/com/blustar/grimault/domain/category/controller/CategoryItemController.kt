@@ -8,7 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.web.bind.annotation.*
 
-@Tag(name = "Category", description = "카테고리 소분류 관리")
+@Tag(name = "Category", description = "상세 카테고리 관리")
 @RestController
 @RequestMapping("/category-items")
 class CategoryItemController(
