@@ -16,17 +16,17 @@ TRUNCATE TABLE public.ledger_entry, public.transaction, public.category, public.
     RESTART IDENTITY;
 
 -- ID-stable account fixtures. CREDIT_CARD jsonb mirrors Kotlin CreditCardMetadata.
-INSERT INTO public.account (id, name, type, subtype, credit_card_metadata, is_active, created_at) VALUES
-    (1, '개발_주거래통장', 'ASSET', 'BANK', NULL, true, '2026-01-01 00:00:00+09'),
-    (2, '개발_생활비통장', 'ASSET', 'BANK', NULL, true, '2026-01-01 00:00:00+09'),
-    (3, '개발_비상금통장', 'ASSET', 'BANK', NULL, true, '2026-01-01 00:00:00+09'),
-    (4, '개발_현금지갑', 'ASSET', 'CASH', NULL, true, '2026-01-01 00:00:00+09'),
-    (5, '개발_페이머니', 'ASSET', 'PREPAID', NULL, true, '2026-01-01 00:00:00+09'),
-    (6, '개발_신한카드', 'LIABILITY', 'CREDIT_CARD', '{"issuer":"SHINHAN","billingPeriod":{"startMonthOffset":-1,"startDay":20,"endMonthOffset":0,"endDay":19},"settlementDay":15}', true, '2026-01-01 00:00:00+09'),
-    (7, '개발_하나카드(해지)', 'LIABILITY', 'CREDIT_CARD', '{"issuer":"HANA","billingPeriod":{"startMonthOffset":-1,"startDay":5,"endMonthOffset":0,"endDay":4},"settlementDay":25}', false, '2026-01-01 00:00:00+09'),
-    (8, '개발_구은행(해지)', 'ASSET', 'BANK', NULL, false, '2026-01-01 00:00:00+09'),
-    (9, '개발_소액대출', 'LIABILITY', 'LOAN', NULL, true, '2026-01-01 00:00:00+09'),
-    (10, '개발_기초자본', 'EQUITY', 'CAPITAL', NULL, false, '2026-01-01 00:00:00+09');
+INSERT INTO public.account (id, name, type, subtype, opening_date, credit_card_metadata, is_active, created_at) VALUES
+    (1, '개발_주거래통장', 'ASSET', 'BANK', DATE '2026-01-01', NULL, true, '2026-01-01 00:00:00+09'),
+    (2, '개발_생활비통장', 'ASSET', 'BANK', DATE '2026-01-01', NULL, true, '2026-01-01 00:00:00+09'),
+    (3, '개발_비상금통장', 'ASSET', 'BANK', DATE '2026-01-01', NULL, true, '2026-01-01 00:00:00+09'),
+    (4, '개발_현금지갑', 'ASSET', 'CASH', DATE '2026-01-01', NULL, true, '2026-01-01 00:00:00+09'),
+    (5, '개발_페이머니', 'ASSET', 'PREPAID', DATE '2026-01-01', NULL, true, '2026-01-01 00:00:00+09'),
+    (6, '개발_신한카드', 'LIABILITY', 'CREDIT_CARD', DATE '2026-01-07', '{"issuer":"SHINHAN","billingPeriod":{"startMonthOffset":-1,"startDay":20,"endMonthOffset":0,"endDay":19},"settlementDay":15}', true, '2026-01-01 00:00:00+09'),
+    (7, '개발_하나카드(해지)', 'LIABILITY', 'CREDIT_CARD', DATE '2026-01-17', '{"issuer":"HANA","billingPeriod":{"startMonthOffset":-1,"startDay":5,"endMonthOffset":0,"endDay":4},"settlementDay":25}', false, '2026-01-01 00:00:00+09'),
+    (8, '개발_구은행(해지)', 'ASSET', 'BANK', DATE '2026-01-01', NULL, false, '2026-01-01 00:00:00+09'),
+    (9, '개발_소액대출', 'LIABILITY', 'LOAN', DATE '2026-01-01', NULL, true, '2026-01-01 00:00:00+09'),
+    (10, '개발_기초자본', 'EQUITY', 'CAPITAL', DATE '1970-01-01', NULL, false, '2026-01-01 00:00:00+09');
 
 -- Master categories (7 expense + 4 income groups; 20 items, 1 inactive).
 INSERT INTO public.category (id, type, name, is_active, sort_order) VALUES
@@ -68,47 +68,47 @@ VALUES
     (20, 11, '환급', true, 1, false);
 
 -- Baseline scenarios (IDs 1..35); created_at uses a fixed timestamp plus ID minutes.
-WITH baseline (id, transaction_date, merchant, description, payment_method, tags, is_waste) AS (
+WITH baseline (id, transaction_date, type, merchant, description, payment_method, tags, is_waste) AS (
     VALUES
-    (1, '2026-01-01', '개발_초기설정', '주거래통장 기초잔액', NULL, 'fixture,opening', false),
-    (2, '2026-01-01', '개발_초기설정', '생활비통장 기초잔액', NULL, 'fixture,opening', false),
-    (3, '2026-01-01', '개발_초기설정', '비상금통장 기초잔액', NULL, 'fixture,opening', false),
-    (4, '2026-01-01', '개발_초기설정', '현금지갑 기초잔액', NULL, 'fixture,opening', false),
-    (5, '2026-01-01', '개발_초기설정', '페이머니 기초잔액', NULL, 'fixture,opening', false),
-    (6, '2026-01-01', '개발_초기설정', '해지은행 과거 잔액', NULL, 'fixture,opening', false),
-    (7, '2026-01-01', '개발_초기설정', '소액대출 기초 부채', NULL, 'fixture,opening', false),
-    (8, '2026-01-02', '개발_계좌이체', '해지은행 잔액 전액 이체', NULL, 'fixture,transfer', false),
-    (9, '2026-01-03', '개발_회사', '급여 입금', NULL, 'fixture,income', false),
-    (10, '2026-01-04', '개발_프로젝트', '프로젝트 정산금', NULL, 'fixture,income', false),
-    (11, '2026-01-05', '개발_은행', '예금 이자', NULL, 'fixture,income', false),
-    (12, '2026-01-06', '개발_마트', '식료품 구매', '체크카드', 'fixture,expense', false),
-    (13, '2026-01-07', '개발_식당', '카드 외식', '신한카드', 'fixture,expense', false),
-    (14, '2026-01-08', '개발_스트리밍', '카드 구독료', '신한카드', 'fixture,expense', false),
-    (15, '2026-01-09', '개발_카드대금', '신한카드 부분 상환', NULL, 'fixture,settlement', false),
-    (16, '2026-01-10', '개발_ATM', '현금 인출', NULL, 'fixture,transfer', false),
-    (17, '2026-01-11', '개발_페이충전', '생활비통장에서 페이 충전', NULL, 'fixture,transfer', false),
-    (18, '2026-01-12', '개발_카페', '페이머니로 커피 구매', '페이머니', 'fixture,expense', false),
-    (19, '2026-01-13', '개발_버스', '현금 교통비', '현금', 'fixture,expense', false),
-    (20, '2026-01-14', '개발_임대인', '월세 납부', NULL, 'fixture,expense', false),
-    (21, '2026-01-15', '개발_대출', '대출 원금 일부 상환', NULL, 'fixture,loan', false),
-    (22, '2026-01-16', '개발_대출', '대출 원금 추가 차입', NULL, 'fixture,loan', false),
-    (23, '2026-01-17', '개발_의류점', '해지카드 과거 구매', '하나카드', 'fixture,historical', false),
-    (24, '2026-01-18', '개발_카드대금', '해지카드 대금 상환', NULL, 'fixture,settlement', false),
-    (25, '2026-01-19', '개발_계좌이체', '비상금 저축 이동', NULL, 'fixture,transfer', false),
-    (26, '2026-01-20', '개발_환급처', '생활비통장 환급금', NULL, 'fixture,income', false),
-    (27, '2026-01-21', '개발_페이충전', '신한카드로 페이 충전', '신한카드', 'fixture,transfer', false),
-    (28, '2026-01-22', '개발_상점', '페이머니 생필품 구매', '페이머니', 'fixture,expense', false),
-    (29, '2026-01-23', '개발_은행', '송금 수수료', NULL, 'fixture,expense', false),
-    (30, '2026-01-24', '개발_기부처', '기부금', NULL, 'fixture,expense', false),
-    (31, '2026-01-25', '개발_카페', '커피 구매', '체크카드', 'fixture,expense', true),
-    (32, '2026-01-26', '개발_병원', '병원비 신용카드 결제', '신한카드', 'fixture,expense', false),
-    (33, '2026-01-27', '개발_환급처', '주거래통장 환급금', NULL, 'fixture,income', false),
-    (34, '2026-01-28', '개발_기타매장', '과거 기타 지출', '현금', 'fixture,expense', false),
-    (35, '2026-01-29', '개발_영화관', '영화 관람', '체크카드', 'fixture,expense', true)
+    (1, '2026-01-01', 'OPENING_BALANCE', '개발_초기설정', '주거래통장 기초잔액', NULL, 'fixture,opening', false),
+    (2, '2026-01-01', 'OPENING_BALANCE', '개발_초기설정', '생활비통장 기초잔액', NULL, 'fixture,opening', false),
+    (3, '2026-01-01', 'OPENING_BALANCE', '개발_초기설정', '비상금통장 기초잔액', NULL, 'fixture,opening', false),
+    (4, '2026-01-01', 'OPENING_BALANCE', '개발_초기설정', '현금지갑 기초잔액', NULL, 'fixture,opening', false),
+    (5, '2026-01-01', 'OPENING_BALANCE', '개발_초기설정', '페이머니 기초잔액', NULL, 'fixture,opening', false),
+    (6, '2026-01-01', 'OPENING_BALANCE', '개발_초기설정', '해지은행 과거 잔액', NULL, 'fixture,opening', false),
+    (7, '2026-01-01', 'OPENING_BALANCE', '개발_초기설정', '소액대출 기초 부채', NULL, 'fixture,opening', false),
+    (8, '2026-01-02', 'TRANSFER', '개발_계좌이체', '해지은행 잔액 전액 이체', NULL, 'fixture,transfer', false),
+    (9, '2026-01-03', 'INCOME_RECEIPT', '개발_회사', '급여 입금', NULL, 'fixture,income', false),
+    (10, '2026-01-04', 'INCOME_RECEIPT', '개발_프로젝트', '프로젝트 정산금', NULL, 'fixture,income', false),
+    (11, '2026-01-05', 'INCOME_RECEIPT', '개발_은행', '예금 이자', NULL, 'fixture,income', false),
+    (12, '2026-01-06', 'SPENDING', '개발_마트', '식료품 구매', '체크카드', 'fixture,expense', false),
+    (13, '2026-01-07', 'SPENDING', '개발_식당', '카드 외식', '신한카드', 'fixture,expense', false),
+    (14, '2026-01-08', 'SPENDING', '개발_스트리밍', '카드 구독료', '신한카드', 'fixture,expense', false),
+    (15, '2026-01-09', 'TRANSFER', '개발_카드대금', '신한카드 부분 상환', NULL, 'fixture,settlement', false),
+    (16, '2026-01-10', 'TRANSFER', '개발_ATM', '현금 인출', NULL, 'fixture,transfer', false),
+    (17, '2026-01-11', 'TRANSFER', '개발_페이충전', '생활비통장에서 페이 충전', NULL, 'fixture,transfer', false),
+    (18, '2026-01-12', 'SPENDING', '개발_카페', '페이머니로 커피 구매', '페이머니', 'fixture,expense', false),
+    (19, '2026-01-13', 'SPENDING', '개발_버스', '현금 교통비', '현금', 'fixture,expense', false),
+    (20, '2026-01-14', 'SPENDING', '개발_임대인', '월세 납부', NULL, 'fixture,expense', false),
+    (21, '2026-01-15', 'TRANSFER', '개발_대출', '대출 원금 일부 상환', NULL, 'fixture,loan', false),
+    (22, '2026-01-16', 'TRANSFER', '개발_대출', '대출 원금 추가 차입', NULL, 'fixture,loan', false),
+    (23, '2026-01-17', 'SPENDING', '개발_의류점', '해지카드 과거 구매', '하나카드', 'fixture,historical', false),
+    (24, '2026-01-18', 'TRANSFER', '개발_카드대금', '해지카드 대금 상환', NULL, 'fixture,settlement', false),
+    (25, '2026-01-19', 'TRANSFER', '개발_계좌이체', '비상금 저축 이동', NULL, 'fixture,transfer', false),
+    (26, '2026-01-20', 'INCOME_RECEIPT', '개발_환급처', '생활비통장 환급금', NULL, 'fixture,income', false),
+    (27, '2026-01-21', 'TRANSFER', '개발_페이충전', '신한카드로 페이 충전', '신한카드', 'fixture,transfer', false),
+    (28, '2026-01-22', 'SPENDING', '개발_상점', '페이머니 생필품 구매', '페이머니', 'fixture,expense', false),
+    (29, '2026-01-23', 'SPENDING', '개발_은행', '송금 수수료', NULL, 'fixture,expense', false),
+    (30, '2026-01-24', 'SPENDING', '개발_기부처', '기부금', NULL, 'fixture,expense', false),
+    (31, '2026-01-25', 'SPENDING', '개발_카페', '커피 구매', '체크카드', 'fixture,expense', true),
+    (32, '2026-01-26', 'SPENDING', '개발_병원', '병원비 신용카드 결제', '신한카드', 'fixture,expense', false),
+    (33, '2026-01-27', 'INCOME_RECEIPT', '개발_환급처', '주거래통장 환급금', NULL, 'fixture,income', false),
+    (34, '2026-01-28', 'SPENDING', '개발_기타매장', '과거 기타 지출', '현금', 'fixture,expense', false),
+    (35, '2026-01-29', 'SPENDING', '개발_영화관', '영화 관람', '체크카드', 'fixture,expense', true)
 )
 INSERT INTO public.transaction
-    (id, transaction_date, merchant, description, payment_method, tags, is_waste, created_at)
-SELECT id, transaction_date::date, merchant, description, payment_method, tags, is_waste,
+    (id, transaction_date, type, merchant, description, payment_method, tags, is_waste, created_at)
+SELECT id, transaction_date::date, type, merchant, description, payment_method, tags, is_waste,
        TIMESTAMPTZ '2026-01-01 00:00:00+09' + id * INTERVAL '1 minute'
 FROM baseline ORDER BY id;
 
@@ -187,23 +187,24 @@ INSERT INTO public.ledger_entry (transaction_id, account_id, category_item_id, a
 
 -- 12 weeks x 7 fixed weekly scenarios = 84 additional transactions (IDs 36..119).
 -- Events repeat with stable amounts; no random() and no clock-dependent fields.
-WITH weekly (week_no, slot, day_offset, merchant, description, payment_method) AS (
-    SELECT w, v.slot, v.day_offset, v.merchant, v.description, v.payment_method
+WITH weekly (week_no, slot, day_offset, type, merchant, description, payment_method) AS (
+    SELECT w, v.slot, v.day_offset, v.type, v.merchant, v.description, v.payment_method
     FROM generate_series(0, 11) AS w
     CROSS JOIN LATERAL (VALUES
-        (0, 0, '개발_분식집', '주간 외식', '체크카드'),
-        (1, 1, '개발_마켓', '주간 장보기', '체크카드'),
-        (2, 2, '개발_버스', '주간 대중교통', '현금'),
-        (3, 3, '개발_카페', '주간 카드 커피', '신한카드'),
-        (4, 4, '개발_스트리밍', '주간 구독료', '신한카드'),
-        (5, 5, '개발_프로젝트', '주간 부수입', NULL),
-        (6, 6, '개발_계좌이체', '주간 생활비 이체', NULL)
-    ) AS v(slot, day_offset, merchant, description, payment_method)
+        (0, 0, 'SPENDING', '개발_분식집', '주간 외식', '체크카드'),
+        (1, 1, 'SPENDING', '개발_마켓', '주간 장보기', '체크카드'),
+        (2, 2, 'SPENDING', '개발_버스', '주간 대중교통', '현금'),
+        (3, 3, 'SPENDING', '개발_카페', '주간 카드 커피', '신한카드'),
+        (4, 4, 'SPENDING', '개발_스트리밍', '주간 구독료', '신한카드'),
+        (5, 5, 'INCOME_RECEIPT', '개발_프로젝트', '주간 부수입', NULL),
+        (6, 6, 'TRANSFER', '개발_계좌이체', '주간 생활비 이체', NULL)
+    ) AS v(slot, day_offset, type, merchant, description, payment_method)
 )
 INSERT INTO public.transaction
-    (id, transaction_date, merchant, description, payment_method, tags, is_waste, created_at)
+    (id, transaction_date, type, merchant, description, payment_method, tags, is_waste, created_at)
 SELECT 36 + 7 * week_no + slot,
        DATE '2026-01-05' + 7 * week_no + day_offset,
+       type,
        merchant,
        description || ' (' || lpad((week_no + 1)::text, 2, '0') || '주차)',
        payment_method,
