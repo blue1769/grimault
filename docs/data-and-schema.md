@@ -23,6 +23,7 @@
 | name | character varying | NOT NULL | 계정 고유 명칭 (예: 신한은행, 현대카드 제로, 네이버머니 등) |
 | type | character varying | NOT NULL | 회계 대분류 (ASSET: 자산, LIABILITY: 부채, EQUITY: 기초자본) |
 | subtype | character varying | NOT NULL | 실사용 세부 성격 (BANK: 은행통장, CASH: 현금, PREPAID: 선불충전금, CREDIT_CARD: 신용카드, LOAN: 대출/차입금, CAPITAL: 기초자본) |
+| opening_date | date | NOT NULL | 계정 시작일 (EQUITY: 1970-01-01, 기초 잔액 거래 우선, 그 외 최초 거래일, 무거래 계정: 2012-12-01) |
 | credit_card_metadata | jsonb | NULL | 신용카드 전용 메타데이터 (카드사, 결제일, 이용기간 등; CREDIT_CARD 외 계정은 NULL) |
 | is_active | boolean | NOT NULL | 신규 거래 작성 시 계정 활성화 여부 (true: 현재 유효 계정, false: 과거 해지 계정) |
 | created_at | timestamp with time zone | NOT NULL | 계정 등록 시스템 일시 |
@@ -51,6 +52,7 @@
 | --- | --- | --- | --- |
 | id | bigint | NOT NULL | 거래 고유 식별자 (PK) |
 | transaction_date | date | NOT NULL | 실제 소비/수입이 발생한 비즈니스 일자 (YYYY-MM-DD) |
+| type | character varying | NOT NULL | 거래 유형 (SPENDING: 지출, INCOME_RECEIPT: 수입, TRANSFER: 이체, REFUND: 환불, OPENING_BALANCE: 기초 잔액) |
 | merchant | character varying | NOT NULL | 결제 가맹점 및 거래처 상호명 (예: 스타벅스, SKT, 쿠팡 등) |
 | description | character varying | NOT NULL | 상세 구매 품목 및 사용 내역 적요 |
 | payment_method | character varying | NULL | 결제 수단 식별 메타데이터 (체크카드명, 현금 등 세부 수단) |
