@@ -14,6 +14,7 @@ CREATE TABLE public.account (
     name VARCHAR(50) COLLATE ko_kr_latin_first NOT NULL UNIQUE,
     type VARCHAR(20) NOT NULL,
     subtype VARCHAR(20) NOT NULL,
+    opening_date DATE NOT NULL,
     credit_card_metadata JSONB NULL,
     is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -24,6 +25,7 @@ COMMENT ON COLUMN public.account.id IS '계정 고유 식별자 (PK)';
 COMMENT ON COLUMN public.account.name IS '계정 고유 명칭 (예: 신한은행, 현대카드 제로, 네이버머니 등)';
 COMMENT ON COLUMN public.account.type IS '회계 대분류 (ASSET: 자산, LIABILITY: 부채, EQUITY: 기초자본)';
 COMMENT ON COLUMN public.account.subtype IS '실사용 세부 성격 (BANK: 은행통장, CASH: 현금, PREPAID: 선불충전금, CREDIT_CARD: 신용카드, LOAN: 대출/차입금, CAPITAL: 기초자본)';
+COMMENT ON COLUMN public.account.opening_date IS '계정 시작일 (EQUITY: 1970-01-01, 기초 잔액 거래 우선, 그 외 최초 거래일, 무거래 계정: 2012-12-01)';
 COMMENT ON COLUMN public.account.credit_card_metadata IS '신용카드 전용 메타데이터 (카드사, 결제일, 이용기간 등; CREDIT_CARD 외 계정은 NULL)';
 COMMENT ON COLUMN public.account.is_active IS '신규 거래 작성 시 계정 활성화 여부 (true: 현재 유효 계정, false: 과거 해지 계정)';
 COMMENT ON COLUMN public.account.created_at IS '계정 등록 시스템 일시';
@@ -75,6 +77,7 @@ COMMENT ON COLUMN public.category_item.is_favorite IS '자주 쓰는 분류 지�
 CREATE TABLE public.transaction (
     id BIGSERIAL PRIMARY KEY,
     transaction_date DATE NOT NULL,
+    type VARCHAR(20) NOT NULL,
     merchant VARCHAR(100) NOT NULL,
     description VARCHAR(255) NOT NULL,
     payment_method VARCHAR(50),
@@ -86,6 +89,7 @@ CREATE TABLE public.transaction (
 COMMENT ON TABLE public.transaction IS '거래 원천 헤더 (비즈니스 소비/수입/이체 이벤트 통합 관리)';
 COMMENT ON COLUMN public.transaction.id IS '거래 고유 식별자 (PK)';
 COMMENT ON COLUMN public.transaction.transaction_date IS '실제 소비/수입이 발생한 비즈니스 일자 (YYYY-MM-DD)';
+COMMENT ON COLUMN public.transaction.type IS '거래 유형 (SPENDING: 지출, INCOME_RECEIPT: 수입, TRANSFER: 이체, REFUND: 환불, OPENING_BALANCE: 기초 잔액)';
 COMMENT ON COLUMN public.transaction.merchant IS '결제 가맹점 및 거래처 상호명 (예: 스타벅스, SKT, 쿠팡 등)';
 COMMENT ON COLUMN public.transaction.description IS '상세 구매 품목 및 사용 내역 적요';
 COMMENT ON COLUMN public.transaction.payment_method IS '결제 수단 식별 메타데이터 (체크카드명, 현금 등 세부 수단)';
