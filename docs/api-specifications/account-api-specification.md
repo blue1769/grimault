@@ -148,6 +148,7 @@ ORDER BY name ASC, id ASC
 단일 Account의 상세 정보를 조회한다.
 
 - 공통 Account 정보를 반환한다.
+- `openingDate`는 해당 계정의 원장 시작일로, 공통 Account 정보에 포함하여 반환한다.
 - 비활성 Account도 조회할 수 있다.
 - 신용카드 Account인 경우 `creditCardMetadata`를 함께 반환한다.
 
@@ -181,6 +182,15 @@ ORDER BY name ASC, id ASC
 
 신용카드 등록 요청에 메타데이터가 포함되지 않으면 요청을 실패 처리한다.
 
+### 6.4 원장 시작일
+
+`openingDate`는 계정의 원장 시작일을 나타내는 선택 입력 속성이다.
+
+- `openingDate`가 전달되면 해당 날짜를 원장 시작일로 사용한다.
+- `openingDate`가 생략되면 계정 등록일을 기본값으로 사용한다.
+- 과거·현재·미래 날짜를 모두 허용한다.
+- 원장 시작일은 계정 생성 이후 변경할 수 없다.
+
 ---
 
 ## 7. 자산 계정 정보 수정
@@ -198,6 +208,7 @@ Account의 모든 속성을 자유롭게 수정할 수 있도록 하지 않는�
 | `name` | 가능 |
 | `type` | 불가 |
 | `subtype` | 불가 |
+| `openingDate` | 불가 |
 | `creditCardMetadata.issuer` | 불가 |
 | `creditCardMetadata.settlementDay` | 가능 |
 | `creditCardMetadata.billingPeriod` | 가능 |
