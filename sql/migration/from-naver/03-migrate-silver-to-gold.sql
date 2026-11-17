@@ -1,547 +1,458 @@
 -- =============================================================================
--- master seeds for `account`
+-- Grimault / 네이버 가계부 데이터 마이그레이션: Silver → Gold
 -- =============================================================================
-with credit_card_metadata_seed (name, issuer, settlement_day, start_month_offset, start_day, end_month_offset, end_day) as (
-    values
-        ('휘닉스', 'BC', 20, -1,  6,  0,  5),
-        ('생활의지혜', 'SHINHAN', 20, -1,  7,  0,  6),
-        ('1Q Daily+', 'HANA', 5, -2, 23, -1, 22),
-        ('Deep Dream', 'SHINHAN', 20, -1,  7,  0,  6)
-), unioned_account_sources as (
-    select coalesce(bank_account, card_name) as name,
-           case when bank_account is not null and card_name is not null then card_name end as payment_detail -- 추후 거래 내역 분개 작성 시 참조
-    from stage.outgo_curated
-    union all
-    select deposit_account as name, null as payment_detail
-    from stage.income_curated
-    union all
-    select distinct trim(split_part(category, '>', 2)) as name,
-                    null as payment_detail
-    from stage.outgo_curated
-    where category ilike '이체/대체>%'
-), deduped_accounts as (
-    select distinct name
-    from unioned_account_sources
-), eligible_accounts as (
-    select da.name,
-           case
-               when da.name in ('전세대출(가양)', '전세대출(성남)', '휘닉스', '생활의지혜', '1Q Daily+', 'Deep Dream') then 'LIABILITY'
-               else 'ASSET'
-               end as type,
-           case
-               when da.name in ('지갑') then 'CASH'
-               when da.name in ('우리은행', '국민은행', '하나주택청약', '카카오뱅크', '신한은행', '기업은행', '언제든적금', '전세금') then 'BANK'
-               when da.name in ('식권', '복지카드', '쿠페이머니', '파스쿠치카드', '긴급재난지원금', '보그헤어(선납)', '스타벅스(App)') then 'PREPAID'
-               when da.name in ('전세대출(가양)', '전세대출(성남)') then 'LOAN'
-               when da.name in ('휘닉스', '생활의지혜', '1Q Daily+', 'Deep Dream') then 'CREDIT_CARD'
-               end as subtype,
-           case
-               when da.name in ('휘닉스', '생활의지혜', '1Q Daily+', 'Deep Dream') then jsonb_build_object(
+-- 실행 전제:
+--   1. 01-migrate-bronze-to-silver.sql 실행 및 Curated 데이터 정제 완료
+--   2. 02-enrich-silver.sql 실행 완료 (transaction_type은 Silver에서 확정)
+--   3. stage.income_curated에 환불용 target_merchant, target_category 컬럼 준비
+--   4. Gold 대상 테이블 초기 적재 준비 완료 (재실행·UPSERT 용도 아님)
+--
+-- 마이그레이션 실행 순서:
+--   1. Account / Category / CategoryItem 마스터 시드 생성
+--   2. Transaction / LedgerEntry 거래 및 분개 생성
+--   3. Account opening_date 최종 확정
+--
+-- 전체 INSERT 및 UPDATE는 하나의 트랜잭션에서 실행한다.
+-- 기존 Gold 데이터가 적재된 상태에서는 대상 초기화 없이 실행하지 않는다.
+-- =============================================================================
+
+BEGIN;
+
+-- =============================================================================
+-- 1. 마스터 시드 생성: Account
+-- =============================================================================
+WITH credit_card_metadata_seed (
+    name, issuer, settlement_day,
+    start_month_offset, start_day, end_month_offset, end_day
+) AS (
+    VALUES
+        ('휘닉스',        'BC',      20, -1,  6,  0,  5),
+        ('생활의지혜',    'SHINHAN', 20, -1,  7,  0,  6),
+        ('1Q Daily+',    'HANA',     5, -2, 23, -1, 22),
+        ('Deep Dream',   'SHINHAN', 20, -1,  7,  0,  6)
+), unioned_account_sources AS (
+    SELECT coalesce(bank_account, card_name) AS name
+    FROM stage.outgo_curated
+
+    UNION ALL
+
+    SELECT deposit_account AS name
+    FROM stage.income_curated
+
+    UNION ALL
+
+    SELECT DISTINCT trim(split_part(category, '>', 2)) AS name
+    FROM stage.outgo_curated
+    WHERE category ILIKE '이체/대체>%'
+), deduped_accounts AS (
+    SELECT DISTINCT name
+    FROM unioned_account_sources
+), eligible_accounts AS (
+    SELECT da.name,
+           CASE
+               WHEN da.name IN (
+                   '전세대출(가양)', '전세대출(성남)',
+                   '휘닉스', '생활의지혜', '1Q Daily+', 'Deep Dream'
+               ) THEN 'LIABILITY'
+               ELSE 'ASSET'
+           END AS type,
+           CASE
+               WHEN da.name = '지갑' THEN 'CASH'
+               WHEN da.name IN (
+                   '우리은행', '국민은행', '하나주택청약', '카카오뱅크',
+                   '신한은행', '기업은행', '언제든적금', '전세금'
+               ) THEN 'BANK'
+               WHEN da.name IN (
+                   '식권', '복지카드', '쿠페이머니', '파스쿠치카드',
+                   '긴급재난지원금', '보그헤어(선납)', '스타벅스(App)'
+               ) THEN 'PREPAID'
+               WHEN da.name IN ('전세대출(가양)', '전세대출(성남)') THEN 'LOAN'
+               WHEN da.name IN ('휘닉스', '생활의지혜', '1Q Daily+', 'Deep Dream') THEN 'CREDIT_CARD'
+           END AS subtype,
+           CASE
+               WHEN s.name IS NOT NULL THEN jsonb_build_object(
                    'issuer', s.issuer,
                    'settlementDay', s.settlement_day,
                    'billingPeriod', jsonb_build_object(
-                           'startMonthOffset', s.start_month_offset,
-                           'startDay', s.start_day,
-                           'endMonthOffset', s.end_month_offset,
-                           'endDay', s.end_day
-                    )
-           ) end as credit_card_metadata,
-           case
-               when da.name in ('신한은행', '지갑', '쿠페이머니', '스타벅스(App)', 'Deep Dream', '1Q Daily+') then true
-               else false
-               end as is_active
-    from deduped_accounts da
-    left outer join credit_card_metadata_seed s on s.name = da.name
-    where da.name is not null and da.name not in ('-', '어머니')
-), final as (
-    select *
-    from eligible_accounts
-    order by type, subtype, name
+                       'startMonthOffset', s.start_month_offset,
+                       'startDay', s.start_day,
+                       'endMonthOffset', s.end_month_offset,
+                       'endDay', s.end_day
+                   )
+               )
+           END AS credit_card_metadata,
+           da.name IN (
+               '신한은행', '지갑', '쿠페이머니', '스타벅스(App)',
+               'Deep Dream', '1Q Daily+'
+           ) AS is_active
+    FROM deduped_accounts da
+    LEFT JOIN credit_card_metadata_seed s ON s.name = da.name
+    WHERE da.name IS NOT NULL
+      AND da.name NOT IN ('-', '어머니')
 )
+INSERT INTO public.account (
+    name, type, subtype, opening_date, credit_card_metadata, is_active
+)
+SELECT name,
+       type,
+       subtype,
+       DATE '1970-01-01' AS opening_date, -- 분개 생성 완료 전까지 사용하는 임시값
+       credit_card_metadata,
+       is_active
+FROM eligible_accounts;
 
-insert into public.account (name, type, subtype, credit_card_metadata, is_active)
-select name, type, subtype, credit_card_metadata, is_active
-from final
-;
+-- 기초 잔액 분개의 상대 계정으로 CAPITAL 계정이 필요하다.
+-- 이미 EQUITY/CAPITAL 계정이 존재하면 기존 계정을 사용한다.
+INSERT INTO public.account (name, type, subtype, opening_date, is_active)
+SELECT '기초자본', 'EQUITY', 'CAPITAL', DATE '1970-01-01', false
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.account WHERE type = 'EQUITY' AND subtype = 'CAPITAL'
+);
 
 -- =============================================================================
--- master seeds for `category`
+-- 1. 마스터 시드 생성: Category / CategoryItem
 -- =============================================================================
-with unioned_category_sources as (
-    select distinct 'EXPENSE' as type,
-                    trim(split_part(category, '>', 1)) as parent_name,
-                    trim(split_part(category, '>', 2)) as sub_name
-    from stage.outgo_curated
-    union all
-    select distinct 'INCOME' as type,
-                    trim(split_part(category, '>', 1)) as parent_name,
-                    trim(split_part(category, '>', 2)) as sub_name
-    from stage.income_curated
-), marked_eligible_categories as (
-    select type,
-           parent_name,
-           sub_name,
-           case
-               when (type = 'EXPENSE' and parent_name in ('이체/대체', '카드대금', '미분류')) then false
-               when (type = 'INCOME' and parent_name in ('전월이월', '미분류')) then false
-               else true
-           end as is_eligible
-    from unioned_category_sources
-), final as (
-    select type,
-           parent_name,
-           sub_name,
-           true as is_active
-    from marked_eligible_categories
-    where is_eligible = true
-    order by type, parent_name, sub_name
-)
+CREATE TEMP TABLE tmp_category_seed ON COMMIT DROP AS
+WITH unioned_category_sources AS (
+    SELECT DISTINCT
+           'EXPENSE' AS type,
+           trim(split_part(category, '>', 1)) AS parent_name,
+           trim(split_part(category, '>', 2)) AS sub_name
+    FROM stage.outgo_curated
 
-insert into public.category (type, name, is_active, sort_order)
-select type,
+    UNION ALL
+
+    SELECT DISTINCT
+           'INCOME' AS type,
+           trim(split_part(category, '>', 1)) AS parent_name,
+           trim(split_part(category, '>', 2)) AS sub_name
+    FROM stage.income_curated
+)
+SELECT DISTINCT type, parent_name, sub_name
+FROM unioned_category_sources
+WHERE NOT (type = 'EXPENSE' AND parent_name IN ('이체/대체', '카드대금', '미분류'))
+  AND NOT (type = 'INCOME'  AND parent_name IN ('전월이월', '미분류'));
+
+INSERT INTO public.category (type, name, is_active, sort_order)
+SELECT type,
        parent_name,
-       true as is_active,
-       row_number() over (order by type, parent_name) as sort_order
-from final
-group by type, parent_name;
+       true,
+       row_number() OVER (ORDER BY type, parent_name)
+FROM (
+    SELECT DISTINCT type, parent_name
+    FROM tmp_category_seed
+) AS parents;
 
--- [!] Warning: The final CTE must be redefined before executing this INSERT.
--- Insert category items by matching their parent categories.
--- Assign dense sort orders starting from 1 within each category.
-
--- insert into public.category_item
--- select c.id as category_id,
---        f.sub_name as name,
---        f.is_active,
---        row_number() over (partition by c.id order by f.type, f.parent_name, f.sub_name) as sort_order,
---        false as is_favorite
--- from final f
--- inner join public.category c on c.name = f.parent_name and c.type = f.type;
-
--- ==========================================================================
--- `transaction` + `ledger_entry`
--- ==========================================================================
--- add income and outgo raw_id bridge column for migration tracking
-alter table public.transaction add column if not exists outgo_raw_id int;
-alter table public.transaction add column if not exists income_raw_id int;
-
--- [!WARNING] drop migration key after service release and delta migration
--- alter table public.transaction drop column if exists outgo_raw_id;
--- alter table public.transaction drop column if exists income_raw_id;
-
--- ==========================================================================
--- #1. journalize general expenses
--- ==========================================================================
-begin;
-
-create temp table tmp_eligible_expenses on commit drop as
-with cleansing_source as (
-    select raw_id,
-           entry_date,
-           coalesce(nullif(merchant, ''), description) as merchant,
-           description,
-           coalesce(nullif(cash_amount, 0), nullif(card_amount, 0)) as amount,
-           coalesce(bank_account, card_name) as account_name,
-           split_part(category, '>', 1) as parent_category,
-           split_part(category, '>', 2) as sub_category,
-           tags,
-           is_waste,
-           case when bank_account is not null and card_name is not null then card_name end as payment_method
-    from stage.outgo_curated
-), eligible_expenses as (
-    select s.raw_id,
-           s.entry_date,
-           a.id as account_id,
-           a.name as account_name,
-           a.type as account_type,
-           a.subtype as account_subtype,
-           s.payment_method,
-           s.amount,
-           s.merchant,
-           s.description,
-           i.id as category_item_id,
-           c.type as category_type,
-           c.name as category_parent_name,
-           i.name as category_sub_name,
-           s.tags,
-           s.is_waste
-    from cleansing_source s
-    left outer join public.account a on a.name = s.account_name
-    left outer join public.category c on c.type = 'EXPENSE' and c.name = s.parent_category
-    left outer join public.category_item i on i.category_id = c.id and i.name = s.sub_category
-    where s.parent_category not in ('이체/대체', '카드대금')
+INSERT INTO public.category_item (
+    category_id, name, is_active, sort_order, is_favorite
 )
+SELECT c.id,
+       s.sub_name,
+       true,
+       row_number() OVER (PARTITION BY c.id ORDER BY s.sub_name),
+       false
+FROM tmp_category_seed s
+JOIN public.category c
+  ON c.type = s.type AND c.name = s.parent_name;
 
-select *
-from eligible_expenses
-;
+-- =============================================================================
+-- 2. 거래 및 분개 생성: Transaction / LedgerEntry
+-- =============================================================================
+-- 원천 raw_id 추적 컬럼은 마이그레이션 전용이며, 차분 마이그레이션 검증까지 유지한다.
+ALTER TABLE public.transaction ADD COLUMN IF NOT EXISTS outgo_raw_id int;
+ALTER TABLE public.transaction ADD COLUMN IF NOT EXISTS income_raw_id int;
 
--- (1) insert into transaction
-insert into public.transaction (transaction_date, merchant, description, payment_method, tags, is_waste, outgo_raw_id)
-select entry_date as transaction_date,
+-- =============================================================================
+-- 2-1. 지출 원천: 일반 지출(SPENDING) 및 음수 지출 환불(REFUND)
+-- =============================================================================
+CREATE TEMP TABLE tmp_eligible_expenses ON COMMIT DROP AS
+SELECT o.raw_id,
+       o.entry_date,
+       o.transaction_type,
+       coalesce(nullif(o.merchant, ''), o.description) AS merchant,
+       o.description,
+       coalesce(nullif(o.cash_amount, 0), nullif(o.card_amount, 0)) AS amount,
+       a.id AS account_id,
+       a.type AS account_type,
+       ci.id AS category_item_id,
+       o.tags,
+       o.is_waste,
+       CASE WHEN o.bank_account IS NOT NULL AND o.card_name IS NOT NULL
+            THEN o.card_name
+       END AS payment_method
+FROM stage.outgo_curated o
+LEFT JOIN public.account a
+  ON a.name = coalesce(o.bank_account, o.card_name)
+LEFT JOIN public.category c
+  ON c.type = 'EXPENSE'
+ AND c.name = split_part(o.category, '>', 1)
+LEFT JOIN public.category_item ci
+  ON ci.category_id = c.id
+ AND ci.name = split_part(o.category, '>', 2)
+WHERE o.transaction_type IN ('SPENDING', 'REFUND');
+
+INSERT INTO public.transaction (
+    transaction_date, type, merchant, description, payment_method,
+    tags, is_waste, outgo_raw_id
+)
+SELECT entry_date,
+       transaction_type,
        merchant,
        description,
        payment_method,
        tags,
        is_waste,
-       raw_id as outgo_raw_id
-from tmp_eligible_expenses
-;
+       raw_id
+FROM tmp_eligible_expenses;
 
--- (2) insert into ledger_entry
-with journal_entry_bases as (
-    select tx.id as transaction_id,
-           ee.account_id,
-           ee.category_item_id,
-           ee.amount,
-           ee.account_type as entry_type
-    from public.transaction tx
-    inner join tmp_eligible_expenses ee on ee.raw_id = tx.outgo_raw_id
+WITH bases AS (
+    SELECT t.id AS transaction_id,
+           e.account_id,
+           e.account_type,
+           e.category_item_id,
+           e.amount
+    FROM tmp_eligible_expenses e
+    JOIN public.transaction t ON t.outgo_raw_id = e.raw_id
 )
-
-insert into public.ledger_entry (transaction_id, account_id, category_item_id, amount, entry_type)
-select transaction_id,
-       account_id,
-       null as category_item_id,
-       -amount as amount,
-       entry_type
-from journal_entry_bases
-union all
-select transaction_id,
-       null,
-       category_item_id,
-       amount,
-       'EXPENSE'
-from journal_entry_bases
-;
-
-commit;
-
--- ==========================================================================
--- #2. journalize general incomes
--- ==========================================================================
-begin;
-
-create temp table tmp_eligible_incomes on commit drop as
-with cleansing_sources as (
-    select raw_id,
-           entry_date,
-           coalesce(nullif(trim(description), ''), '수입') as description,
-           amount,
-           deposit_account as account_name,
-           split_part(category, '>', 1) as parent_category,
-           split_part(category, '>', 2) as sub_category,
-           tags
-    from stage.income_curated
-), eligible_incomes as (
-    select s.raw_id,
-           s.entry_date,
-           a.id as account_id,
-           a.name as account_name,
-           a.type as account_type,
-           a.subtype as account_subtype,
-           s.amount,
-           s.description,
-           i.id as category_item_id,
-           c.type as category_type,
-           c.name as category_parent_name,
-           i.name as category_sub_name,
-           s.tags
-    from cleansing_sources s
-    left outer join public.account a on a.name = s.account_name
-    left outer join public.category c on c.type = 'INCOME' and c.name = s.parent_category
-    left outer join public.category_item i on i.category_id = c.id and i.name = s.sub_category
-    where s.parent_category != '전월이월'
-    and s.sub_category != '환불'
-    and s.raw_id not in (767, 816, 832, 840, 852, 853, 865, 873, 884, 889, 891, 903, 913, 924, 928, 942, 958) -- 선불 자산 자금 이동 대상 17건
+INSERT INTO public.ledger_entry (
+    transaction_id, account_id, category_item_id, amount, entry_type
 )
+SELECT transaction_id, account_id, NULL::int, -amount, account_type
+FROM bases
+UNION ALL
+SELECT transaction_id, NULL::int, category_item_id, amount, 'EXPENSE'
+FROM bases;
 
-select *
-from eligible_incomes
-;
+-- =============================================================================
+-- 2-2. 수입 원천: 일반 수입(INCOME_RECEIPT)
+-- =============================================================================
+CREATE TEMP TABLE tmp_eligible_incomes ON COMMIT DROP AS
+SELECT i.raw_id,
+       i.entry_date,
+       i.transaction_type,
+       coalesce(nullif(trim(i.description), ''), '수입') AS description,
+       i.amount,
+       a.id AS account_id,
+       ci.id AS category_item_id,
+       i.tags
+FROM stage.income_curated i
+LEFT JOIN public.account a ON a.name = i.deposit_account
+LEFT JOIN public.category c
+  ON c.type = 'INCOME'
+ AND c.name = split_part(i.category, '>', 1)
+LEFT JOIN public.category_item ci
+  ON ci.category_id = c.id
+ AND ci.name = split_part(i.category, '>', 2)
+WHERE i.transaction_type = 'INCOME_RECEIPT';
 
--- (1) insert into transaction
-insert into public.transaction (transaction_date, merchant, description, payment_method, tags, is_waste, income_raw_id)
-select entry_date as transaction_date,
-       description as merchant,
+INSERT INTO public.transaction (
+    transaction_date, type, merchant, description, payment_method,
+    tags, is_waste, income_raw_id
+)
+SELECT entry_date,
+       transaction_type,
        description,
-       null as payment_method,
+       description,
+       NULL,
        tags,
-       false as is_waste,
-       raw_id as income_raw_id
-from tmp_eligible_incomes
-;
+       false,
+       raw_id
+FROM tmp_eligible_incomes;
 
--- (2) insert into ledger_entry
-with journal_entry_bases as (
-    select tx.id as transaction_id,
-           ei.account_id,
-           ei.category_item_id,
-           ei.amount
-    from public.transaction tx
-    inner join tmp_eligible_incomes ei on ei.raw_id = tx.income_raw_id
+WITH bases AS (
+    SELECT t.id AS transaction_id,
+           i.account_id,
+           i.category_item_id,
+           i.amount
+    FROM tmp_eligible_incomes i
+    JOIN public.transaction t ON t.income_raw_id = i.raw_id
 )
-
-insert into public.ledger_entry (transaction_id, account_id, category_item_id, amount, entry_type)
-select transaction_id,
-       account_id,
-       null as category_item_id,
-       amount as amount,
-       'ASSET' as entry_type
-from journal_entry_bases
-union all
-select transaction_id,
-       null,
-       category_item_id,
-       -amount,
-       'REVENUE'
-from journal_entry_bases
-;
-
-commit;
-
--- ==========================================================================
--- #2-1. journalize refunded transaction
--- ==========================================================================
--- add target merchant and category columns refunded transaction
-alter table stage.income_curated
-    add column if not exists target_merchant varchar(100),
-    add column if not exists target_category varchar(100)
-;
-
-begin;
-
-create temp table tmp_eligible_refunds on commit drop as
-with cleansing_sources as (
-    select raw_id,
-           entry_date,
-           target_merchant as merchant,
-           description,
-           amount,
-           deposit_account as account_name,
-           split_part(target_category, '>', 1) as parent_category,
-           split_part(target_category, '>', 2) as sub_category,
-           tags
-    from stage.income_curated
-    where category = '부수입>환불'
-    and raw_id != 622 -- 주수입>급여 오등록 내역 1건 (forced)
-), eligible_refunds as (
-    select s.raw_id,
-           s.entry_date,
-           a.id as account_id,
-           a.name as account_name,
-           a.type as account_type,
-           a.subtype as account_subtype,
-           s.amount,
-           s.merchant,
-           s.description,
-           i.id as category_item_id,
-           c.type as category_type,
-           c.name as category_parent_name,
-           i.name as category_sub_name,
-           s.tags
-    from cleansing_sources s
-    left outer join public.account a on a.name = s.account_name
-    left outer join public.category c on c.type = 'EXPENSE' and c.name = s.parent_category
-    left outer join public.category_item i on i.category_id = c.id and i.name = s.sub_category
+INSERT INTO public.ledger_entry (
+    transaction_id, account_id, category_item_id, amount, entry_type
 )
+SELECT transaction_id, account_id, NULL::int, amount, 'ASSET'
+FROM bases
+UNION ALL
+SELECT transaction_id, NULL::int, category_item_id, -amount, 'REVENUE'
+FROM bases;
 
-select *
-from eligible_refunds
-;
+-- =============================================================================
+-- 2-3. 수입 원천: 지출 취소 및 환불(REFUND)
+-- =============================================================================
+CREATE TEMP TABLE tmp_eligible_refunds ON COMMIT DROP AS
+SELECT i.raw_id,
+       i.entry_date,
+       i.transaction_type,
+       i.target_merchant AS merchant,
+       i.description,
+       i.amount,
+       a.id AS account_id,
+       ci.id AS category_item_id,
+       i.tags
+FROM stage.income_curated i
+LEFT JOIN public.account a ON a.name = i.deposit_account
+LEFT JOIN public.category c
+  ON c.type = 'EXPENSE'
+ AND c.name = split_part(i.target_category, '>', 1)
+LEFT JOIN public.category_item ci
+  ON ci.category_id = c.id
+ AND ci.name = split_part(i.target_category, '>', 2)
+WHERE i.transaction_type = 'REFUND';
 
--- (1) insert into transaction
-insert into public.transaction (transaction_date, merchant, description, payment_method, tags, is_waste, income_raw_id)
-select entry_date as transaction_date,
+INSERT INTO public.transaction (
+    transaction_date, type, merchant, description, payment_method,
+    tags, is_waste, income_raw_id
+)
+SELECT entry_date,
+       transaction_type,
        merchant,
        description,
-       null as payment_method,
+       NULL,
        tags,
-       false as is_waste,
-       raw_id as income_raw_id
-from tmp_eligible_refunds
-;
+       false,
+       raw_id
+FROM tmp_eligible_refunds;
 
--- (2) insert into ledger_entry
-with journal_entry_bases as (
-    select tx.id as transaction_id,
-           er.account_id,
-           er.category_item_id,
-           er.amount
-    from public.transaction tx
-    inner join tmp_eligible_refunds er on er.raw_id = tx.income_raw_id
+WITH bases AS (
+    SELECT t.id AS transaction_id,
+           r.account_id,
+           r.category_item_id,
+           r.amount
+    FROM tmp_eligible_refunds r
+    JOIN public.transaction t ON t.income_raw_id = r.raw_id
 )
-
-insert into public.ledger_entry (transaction_id, account_id, category_item_id, amount, entry_type)
-select transaction_id,
-       account_id,
-       null as category_item_id,
-       amount,
-       'ASSET' as entry_type
-from journal_entry_bases
-union all
-select transaction_id,
-       null,
-       category_item_id,
-       -amount,
-       'EXPENSE'
-from journal_entry_bases
-;
-
-commit;
-
--- ==========================================================================
--- #3. journalize accounts-transfer transaction
--- ==========================================================================
-begin;
-
-create temp table tmp_eligible_transfers on commit drop as
-with cleansing_source as (
-    select raw_id,
-           entry_date,
-           description,
-           coalesce(nullif(cash_amount, 0), nullif(card_amount, 0)) as amount,
-           coalesce(bank_account, card_name) as account_name,
-           split_part(category, '>', 1) as parent_category,
-           split_part(category, '>', 2) as sub_category,
-           tags,
-           is_waste
-    from stage.outgo_curated
-), eligible_transfers as (
-    select s.raw_id,
-           s.entry_date,
-           sa.id as source_account_id,
-           sa.name as source_account_name,
-           sa.type as source_account_type,
-           sa.subtype as source_account_subtype,
-           s.amount,
-           s.sub_category as merchant, -- 거래 대상 (Counterparty)
-           s.description,
-           ta.id as target_account_id,
-           ta.name as target_account_name,
-           ta.type as target_account_type,
-           ta.subtype as target_account_subtype,
-           s.tags,
-           s.is_waste
-    from cleansing_source s
-    left outer join public.account sa on sa.name = s.account_name
-    left outer join public.account ta on ta.name = s.sub_category
-    where s.parent_category in ('이체/대체', '카드대금')
+INSERT INTO public.ledger_entry (
+    transaction_id, account_id, category_item_id, amount, entry_type
 )
+SELECT transaction_id, account_id, NULL::int, amount, 'ASSET'
+FROM bases
+UNION ALL
+SELECT transaction_id, NULL::int, category_item_id, -amount, 'EXPENSE'
+FROM bases;
 
-select *
-from eligible_transfers
-;
+-- =============================================================================
+-- 2-4. 지출 원천: 계정 간 이체(TRANSFER, 선불 충전 및 카드대금 포함)
+-- =============================================================================
+CREATE TEMP TABLE tmp_eligible_transfers ON COMMIT DROP AS
+SELECT o.raw_id,
+       o.entry_date,
+       o.transaction_type,
+       split_part(o.category, '>', 2) AS merchant,
+       o.description,
+       coalesce(nullif(o.cash_amount, 0), nullif(o.card_amount, 0)) AS amount,
+       sa.id AS source_account_id,
+       sa.type AS source_account_type,
+       ta.id AS target_account_id,
+       ta.type AS target_account_type,
+       o.tags,
+       o.is_waste
+FROM stage.outgo_curated o
+LEFT JOIN public.account sa
+  ON sa.name = coalesce(o.bank_account, o.card_name)
+LEFT JOIN public.account ta
+  ON ta.name = split_part(o.category, '>', 2)
+WHERE o.transaction_type = 'TRANSFER';
 
--- (1) insert into transaction
-insert into public.transaction (transaction_date, merchant, description, payment_method, tags, is_waste, outgo_raw_id)
-select entry_date as transaction_date,
+INSERT INTO public.transaction (
+    transaction_date, type, merchant, description, payment_method,
+    tags, is_waste, outgo_raw_id
+)
+SELECT entry_date,
+       transaction_type,
        merchant,
        description,
-       null as payment_method,
+       NULL,
        tags,
        is_waste,
-       raw_id as outgo_raw_id
-from tmp_eligible_transfers
-;
+       raw_id
+FROM tmp_eligible_transfers;
 
--- (2) insert into ledger_entry
-with journal_entry_bases as (
-    select tx.id as transaction_id,
-           et.source_account_id,
-           et.source_account_type,
-           et.target_account_id,
-           et.target_account_type,
-           et.amount
-    from public.transaction tx
-    inner join tmp_eligible_transfers et on et.raw_id = tx.outgo_raw_id
+WITH bases AS (
+    SELECT t.id AS transaction_id,
+           x.source_account_id,
+           x.source_account_type,
+           x.target_account_id,
+           x.target_account_type,
+           x.amount
+    FROM tmp_eligible_transfers x
+    JOIN public.transaction t ON t.outgo_raw_id = x.raw_id
 )
-
-insert into public.ledger_entry (transaction_id, account_id, category_item_id, amount, entry_type)
-select transaction_id,
-       source_account_id as account_id,
-       null::integer as category_item_id,
-       -amount as amount,
-       source_account_type as entry_type
-from journal_entry_bases
-union all
-select transaction_id,
-       target_account_id,
-       null,
-       amount,
-       target_account_type
-from journal_entry_bases
-;
-
-commit;
-
--- ==========================================================================
--- #5. journalize equity transaction
--- ==========================================================================
-begin;
-
-create temp table tmp_eligible_equities on commit drop as
-with cleansing_sources as (
-    select raw_id,
-           entry_date,
-           amount,
-           deposit_account as account_name,
-           tags
-    from stage.income_curated
-), eligible_equities as (
-    select s.raw_id,
-           s.entry_date,
-           a.id as account_id,
-           a.name as account_name,
-           a.type as account_type,
-           a.subtype as account_subtype,
-           s.amount,
-           s.tags
-    from cleansing_sources s
-    left outer join public.account a on a.name = s.account_name
-    where raw_id in (3, 4, 5, 480) -- category ilike '전월이월>%'
+INSERT INTO public.ledger_entry (
+    transaction_id, account_id, category_item_id, amount, entry_type
 )
+SELECT transaction_id, source_account_id, NULL::int, -amount, source_account_type
+FROM bases
+UNION ALL
+SELECT transaction_id, target_account_id, NULL::int, amount, target_account_type
+FROM bases;
 
-select *
-from eligible_equities
-;
+-- =============================================================================
+-- 2-5. 수입 원천: 기초 잔액(OPENING_BALANCE)
+-- =============================================================================
+CREATE TEMP TABLE tmp_eligible_equities ON COMMIT DROP AS
+SELECT i.raw_id,
+       i.entry_date,
+       i.transaction_type,
+       i.amount,
+       i.deposit_account AS account_name,
+       a.id AS account_id,
+       i.tags
+FROM stage.income_curated i
+LEFT JOIN public.account a ON a.name = i.deposit_account
+WHERE i.transaction_type = 'OPENING_BALANCE';
 
--- (1) insert into transaction
-insert into public.transaction (transaction_date, merchant, description, payment_method, tags, is_waste, income_raw_id)
-select entry_date as transaction_date,
-       '장부 시작 기초 잔액' as merchant,
-       account_name || ' 시작 금액' as description,
-       null as payment_method,
+INSERT INTO public.transaction (
+    transaction_date, type, merchant, description, payment_method,
+    tags, is_waste, income_raw_id
+)
+SELECT entry_date,
+       transaction_type,
+       '장부 시작 기초 잔액',
+       account_name || ' 시작 금액',
+       NULL,
        tags,
-       false as is_waste,
-       raw_id as income_raw_id
-from tmp_eligible_equities
-;
+       false,
+       raw_id
+FROM tmp_eligible_equities;
 
--- (2) insert into ledger_entry
-with journal_entry_bases as (
-    select tx.id as transaction_id,
-           ee.account_id,
-           null::integer as category_item_id,
-           ee.amount
-    from public.transaction tx
-    inner join tmp_eligible_equities ee on ee.raw_id = tx.income_raw_id
+WITH bases AS (
+    SELECT t.id AS transaction_id,
+           e.account_id,
+           e.amount
+    FROM tmp_eligible_equities e
+    JOIN public.transaction t ON t.income_raw_id = e.raw_id
 )
-
-insert into public.ledger_entry (transaction_id, account_id, category_item_id, amount, entry_type)
-select transaction_id,
-       account_id,
-       null::integer as category_item_id,
-       amount as amount,
-       'ASSET' as entry_type
-from journal_entry_bases
-union all
-select transaction_id,
-       (select id from public.account where type = 'EQUITY'), -- 기초자본 (EQUITY) Account ID
-       null,
+INSERT INTO public.ledger_entry (
+    transaction_id, account_id, category_item_id, amount, entry_type
+)
+SELECT transaction_id, account_id, NULL::int, amount, 'ASSET'
+FROM bases
+UNION ALL
+SELECT transaction_id,
+       (SELECT id FROM public.account WHERE type = 'EQUITY' AND subtype = 'CAPITAL'),
+       NULL::int,
        -amount,
        'EQUITY'
-from journal_entry_bases
-;
+FROM bases;
 
-commit;
+-- =============================================================================
+-- 3. 완성된 원장을 기준으로 account.opening_date 최종 확정
+-- =============================================================================
+-- 금융 계정별 최초 분개 거래일을 적용하고, 거래가 없는 계정은 CURRENT_DATE를 적용한다.
+-- 내부 CAPITAL 계정은 상징적 시작일 1970-01-01을 유지한다.
+UPDATE public.account a
+SET opening_date = CASE
+    WHEN a.type = 'EQUITY' AND a.subtype = 'CAPITAL'
+        THEN DATE '1970-01-01'
+    ELSE coalesce(
+        (
+            SELECT min(t.transaction_date)
+            FROM public.ledger_entry le
+            JOIN public.transaction t ON t.id = le.transaction_id
+            WHERE le.account_id = a.id
+        ),
+        CURRENT_DATE
+    )
+END;
+
+COMMIT;
