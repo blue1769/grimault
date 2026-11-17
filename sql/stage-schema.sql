@@ -63,7 +63,8 @@ COMMENT ON COLUMN stage.income.created_at IS '스테이징 적재 시스템 감�
 -- 3. 지출 큐레이션 테이블 (stage.outgo_curated)
 -- =============================================================================
 CREATE TABLE stage.outgo_curated (
-    LIKE stage.outgo INCLUDING ALL
+    LIKE stage.outgo INCLUDING ALL,
+    transaction_type VARCHAR(20)
 );
 
 COMMENT ON TABLE stage.outgo_curated IS '지출 비즈니스 정제 및 보정 완료 테이블 (Silver Curated)';
@@ -72,7 +73,8 @@ COMMENT ON TABLE stage.outgo_curated IS '지출 비즈니스 정제 및 보정 �
 -- 4. 수입 큐레이션 테이블 (stage.income_curated)
 -- =============================================================================
 CREATE TABLE stage.income_curated (
-    LIKE stage.income INCLUDING ALL
+    LIKE stage.income INCLUDING ALL,
+    transaction_type VARCHAR(20)
 );
 
 COMMENT ON TABLE stage.income_curated IS '수입 비즈니스 정제 및 보정 완료 테이블 (Silver Curated)';
