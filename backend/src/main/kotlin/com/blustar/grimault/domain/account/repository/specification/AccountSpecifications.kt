@@ -6,6 +6,11 @@ import org.springframework.data.jpa.domain.Specification
 
 object AccountSpecifications {
 
+    fun excludeCapital(): Specification<Account> =
+        Specification { root, _, _ ->
+            root.get<AccountSubtype>("subtype").notEqualTo(AccountSubtype.CAPITAL)
+        }
+
     fun isActive(isActive: Boolean?): Specification<Account> =
         Specification { root, _, criteriaBuilder ->
             if (isActive == null) {

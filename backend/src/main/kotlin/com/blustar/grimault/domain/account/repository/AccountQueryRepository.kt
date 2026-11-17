@@ -19,6 +19,7 @@ class AccountQueryRepository(
         val specification = Specification.allOf(
             AccountSpecifications.isActive(isActive),
             AccountSpecifications.subtypesIn(subtypes),
+            AccountSpecifications.excludeCapital(),
         )
 
         val sort = Sort.by(
