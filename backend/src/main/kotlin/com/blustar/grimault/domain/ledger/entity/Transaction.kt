@@ -14,6 +14,10 @@ class Transaction(
     @Column(name = "transaction_date")
     val transactionDate: LocalDate,
 
+    @Column(name = "type")
+    @Enumerated(EnumType.STRING)
+    val type: TransactionType,
+
     @Column(name = "merchant")
     val merchant: String,
 
