@@ -25,7 +25,7 @@ COMMENT ON COLUMN public.account.id IS '계정 고유 식별자 (PK)';
 COMMENT ON COLUMN public.account.name IS '계정 고유 명칭 (예: 신한은행, 현대카드 제로, 네이버머니 등)';
 COMMENT ON COLUMN public.account.type IS '회계 대분류 (ASSET: 자산, LIABILITY: 부채, EQUITY: 기초자본)';
 COMMENT ON COLUMN public.account.subtype IS '실사용 세부 성격 (BANK: 은행통장, CASH: 현금, PREPAID: 선불충전금, CREDIT_CARD: 신용카드, LOAN: 대출/차입금, CAPITAL: 기초자본)';
-COMMENT ON COLUMN public.account.opening_date IS '계정 시작일 (EQUITY: 1970-01-01, 기초 잔액 거래 우선, 그 외 최초 거래일, 무거래 계정: 2012-12-01)';
+COMMENT ON COLUMN public.account.opening_date IS '계정 시작일 (EQUITY/CAPITAL: 1970-01-01, 그 외 계정: 최초 분개 거래일, 무거래 계정: CURRENT_DATE)';
 COMMENT ON COLUMN public.account.credit_card_metadata IS '신용카드 전용 메타데이터 (카드사, 결제일, 이용기간 등; CREDIT_CARD 외 계정은 NULL)';
 COMMENT ON COLUMN public.account.is_active IS '신규 거래 작성 시 계정 활성화 여부 (true: 현재 유효 계정, false: 과거 해지 계정)';
 COMMENT ON COLUMN public.account.created_at IS '계정 등록 시스템 일시';
@@ -83,11 +83,15 @@ CREATE TABLE public.transaction (
     payment_method VARCHAR(50),
     tags TEXT,
     is_waste BOOLEAN NOT NULL DEFAULT false,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    outgo_raw_id INT,
+    income_raw_id INT
 );
 
 COMMENT ON TABLE public.transaction IS '거래 원천 헤더 (비즈니스 소비/수입/이체 이벤트 통합 관리)';
 COMMENT ON COLUMN public.transaction.id IS '거래 고유 식별자 (PK)';
+COMMENT ON COLUMN public.transaction.outgo_raw_id IS '네이버 지출 원천 raw_id 매핑 및 검증용 보조 컬럼 (마이그레이션 추적)';
+COMMENT ON COLUMN public.transaction.income_raw_id IS '네이버 수입 원천 raw_id 매핑 및 검증용 보조 컬럼 (마이그레이션 추적)';
 COMMENT ON COLUMN public.transaction.transaction_date IS '실제 소비/수입이 발생한 비즈니스 일자 (YYYY-MM-DD)';
 COMMENT ON COLUMN public.transaction.type IS '거래 유형 (SPENDING: 지출, INCOME_RECEIPT: 수입, TRANSFER: 이체, REFUND: 환불, OPENING_BALANCE: 기초 잔액)';
 COMMENT ON COLUMN public.transaction.merchant IS '결제 가맹점 및 거래처 상호명 (예: 스타벅스, SKT, 쿠팡 등)';
@@ -96,6 +100,11 @@ COMMENT ON COLUMN public.transaction.payment_method IS '결제 수단 식별 메
 COMMENT ON COLUMN public.transaction.tags IS '모임/인명/맥락 기록용 검색 태그 (쉼표 구분 자유 텍스트)';
 COMMENT ON COLUMN public.transaction.is_waste IS '낭비성 지출 여부 플래그 (true: 낭비, false: 일반)';
 COMMENT ON COLUMN public.transaction.created_at IS '데이터베이스 최초 등록 시스템 감사 일시';
+
+-- [마이그레이션 종료 후 정리]
+-- 원천 데이터 추적 및 차분 마이그레이션이 완료되면 보조 컬럼 제거
+-- ALTER TABLE public.transaction DROP COLUMN IF EXISTS outgo_raw_id;
+-- ALTER TABLE public.transaction DROP COLUMN IF EXISTS income_raw_id;
 
 -- =============================================================================
 -- 5. 분개 원장 라인 (ledger_entry)

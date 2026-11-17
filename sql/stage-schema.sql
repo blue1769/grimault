@@ -74,7 +74,11 @@ COMMENT ON TABLE stage.outgo_curated IS '지출 비즈니스 정제 및 보정 �
 -- =============================================================================
 CREATE TABLE stage.income_curated (
     LIKE stage.income INCLUDING ALL,
-    transaction_type VARCHAR(20)
+    transaction_type VARCHAR(20),
+    target_merchant VARCHAR(100),
+    target_category VARCHAR(100)
 );
 
 COMMENT ON TABLE stage.income_curated IS '수입 비즈니스 정제 및 보정 완료 테이블 (Silver Curated)';
+COMMENT ON COLUMN stage.income_curated.target_merchant IS '환불 거래의 원 결제 가맹점 매핑용 보조 컬럼 (Silver → Gold 마이그레이션)';
+COMMENT ON COLUMN stage.income_curated.target_category IS '환불 거래의 원 지출 분류 매핑용 보조 컬럼 (Silver → Gold 마이그레이션)';

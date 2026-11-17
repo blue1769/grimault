@@ -4,7 +4,7 @@
 -- 실행 전제:
 --   1. 01-migrate-bronze-to-silver.sql 실행 및 Curated 데이터 정제 완료
 --   2. 02-enrich-silver.sql 실행 완료 (transaction_type은 Silver에서 확정)
---   3. stage.income_curated에 환불용 target_merchant, target_category 컬럼 준비
+--   3. stage-schema.sql / public-schema.sql의 마이그레이션 보조 컬럼 정의 반영
 --   4. Gold 대상 테이블 초기 적재 준비 완료 (재실행·UPSERT 용도 아님)
 --
 -- 마이그레이션 실행 순서:
@@ -158,10 +158,6 @@ JOIN public.category c
 -- =============================================================================
 -- 2. 거래 및 분개 생성: Transaction / LedgerEntry
 -- =============================================================================
--- 원천 raw_id 추적 컬럼은 마이그레이션 전용이며, 차분 마이그레이션 검증까지 유지한다.
-ALTER TABLE public.transaction ADD COLUMN IF NOT EXISTS outgo_raw_id int;
-ALTER TABLE public.transaction ADD COLUMN IF NOT EXISTS income_raw_id int;
-
 -- =============================================================================
 -- 2-1. 지출 원천: 일반 지출(SPENDING) 및 음수 지출 환불(REFUND)
 -- =============================================================================
