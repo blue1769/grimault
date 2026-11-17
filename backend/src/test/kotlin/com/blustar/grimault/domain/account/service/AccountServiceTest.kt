@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import java.time.LocalDate
 import java.util.Optional
 
 class AccountServiceTest {
@@ -51,6 +52,7 @@ class AccountServiceTest {
             name = "테스트 은행 계정",
             type = AccountType.ASSET,
             subtype = AccountSubtype.BANK,
+            openingDate = LocalDate.of(2024, 2, 29),
             isActive = true,
         )
         val createdAt = account.createdAt
@@ -91,6 +93,7 @@ class AccountServiceTest {
             name = "테스트 신용카드",
             type = AccountType.LIABILITY,
             subtype = AccountSubtype.CREDIT_CARD,
+            openingDate = LocalDate.of(2024, 2, 29),
             isActive = false,
             creditCardMetadata = metadata,
         )
@@ -117,6 +120,7 @@ class AccountServiceTest {
             name = "은행 계정",
             type = AccountType.ASSET,
             subtype = AccountSubtype.BANK,
+            openingDate = LocalDate.of(2024, 2, 29),
             isActive = true,
         )
         every { repository.findById(1) } returns Optional.of(account)

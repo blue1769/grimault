@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
+import java.time.LocalDate
 
 @Schema(description = "금융 계정 생성 요청")
 @ValidCreateAccountRequest
@@ -20,6 +21,8 @@ data class CreateAccountRequest(
 
     @field:NotBlank
     val subtype: String,
+
+    val openingDate: LocalDate? = null,
 
     val issuer: String? = null,
 
@@ -48,6 +51,7 @@ data class CreateAccountRequest(
         name = name,
         type = requireNotNull(AccountType.fromNameOrNull(type.trim())),
         subtype = requireNotNull(AccountSubtype.fromNameOrNull(subtype.trim())),
+        openingDate = openingDate ?: LocalDate.now(),
         creditCardMetadata = creditCardMetadata(),
         isActive = true,
     )

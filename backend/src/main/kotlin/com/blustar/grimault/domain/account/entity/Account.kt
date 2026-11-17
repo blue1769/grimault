@@ -3,6 +3,7 @@ package com.blustar.grimault.domain.account.entity
 import jakarta.persistence.*
 import org.hibernate.annotations.JdbcTypeCode
 import org.hibernate.type.SqlTypes
+import java.time.LocalDate
 import java.time.OffsetDateTime
 
 @Entity
@@ -21,6 +22,9 @@ class Account(
     @Column(name = "subtype")
     @Enumerated(EnumType.STRING)
     val subtype: AccountSubtype,
+
+    @Column(name = "opening_date")
+    val openingDate: LocalDate,
 
     creditCardMetadata: CreditCardMetadata? = null,
 

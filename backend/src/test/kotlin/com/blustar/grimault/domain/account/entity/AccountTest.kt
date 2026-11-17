@@ -3,6 +3,7 @@ package com.blustar.grimault.domain.account.entity
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
+import java.time.LocalDate
 
 class AccountTest {
 
@@ -19,6 +20,7 @@ class AccountTest {
             name = "신한카드",
             type = AccountType.LIABILITY,
             subtype = AccountSubtype.CREDIT_CARD,
+            openingDate = LocalDate.of(2024, 2, 29),
             creditCardMetadata = CreditCardMetadata(
                 issuer = CreditCardIssuer.SHINHAN,
                 billingPeriod = originalBillingPeriod,
@@ -44,6 +46,7 @@ class AccountTest {
             name = "신한카드",
             type = AccountType.LIABILITY,
             subtype = AccountSubtype.CREDIT_CARD,
+            openingDate = LocalDate.of(2024, 2, 29),
             creditCardMetadata = CreditCardMetadata(
                 issuer = CreditCardIssuer.SHINHAN,
                 billingPeriod = CreditCardBillingPeriod(
