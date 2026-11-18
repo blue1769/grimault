@@ -55,6 +55,7 @@
 - [백엔드 아키텍처 및 패키지 전략](docs/backend-package-strategy.md)
 - [Account API 기능 명세](docs/api-specifications/account-api-specification.md)
 - [Category API 기능 명세](docs/api-specifications/category-api-specification.md)
+- [Ledger API 기능 명세](docs/api-specifications/ledger-api-specification.md)
 
 ## 테스트 전략
 - [백엔드 단위 테스트 작성 규약](docs/backend-unit-test-convention.md)
