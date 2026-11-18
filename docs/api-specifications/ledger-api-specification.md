@@ -1253,6 +1253,7 @@ Ledger API는 기존 Account·Category API와 공통 오류 처리 규약을 유
 | 삭제 대상 거래 없음 | `404 Not Found` |
 | 거래 삭제 성공 | `204 No Content` |
 | 목록 조회 기간 역전 또는 페이지 크기 0 이하 | `400 Bad Request` |
+| 존재하지 않거나 사용 불가능한 계정·분류 참조 및 허용되지 않는 계정 조합 | `400 Bad Request` |
 
 ### 10.3 세부 오류 매핑
 
