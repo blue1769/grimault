@@ -53,7 +53,7 @@
 | id | bigint | NOT NULL | 거래 고유 식별자 (PK) |
 | transaction_date | date | NOT NULL | 실제 소비/수입이 발생한 비즈니스 일자 (YYYY-MM-DD) |
 | type | character varying | NOT NULL | 거래 유형 (SPENDING: 지출, INCOME_RECEIPT: 수입, TRANSFER: 이체, REFUND: 환불, OPENING_BALANCE: 기초 잔액) |
-| merchant | character varying | NOT NULL | 결제 가맹점 및 거래처 상호명 (예: 스타벅스, SKT, 쿠팡 등) |
+| merchant | character varying | NULL | 결제 가맹점 및 거래처 상호명 (예: 스타벅스, SKT, 쿠팡 등) |
 | description | character varying | NOT NULL | 상세 구매 품목 및 사용 내역 적요 |
 | payment_method | character varying | NULL | 결제 수단 식별 메타데이터 (체크카드명, 현금 등 세부 수단) |
 | tags | text | NULL | 모임/인명/맥락 기록용 검색 태그 (쉼표 구분 자유 텍스트) |

@@ -78,7 +78,7 @@ CREATE TABLE public.transaction (
     id BIGSERIAL PRIMARY KEY,
     transaction_date DATE NOT NULL,
     type VARCHAR(20) NOT NULL,
-    merchant VARCHAR(100) NOT NULL,
+    merchant VARCHAR(100),
     description VARCHAR(255) NOT NULL,
     payment_method VARCHAR(50),
     tags TEXT,
