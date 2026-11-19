@@ -9,6 +9,8 @@ import jakarta.validation.constraints.*
 import java.math.BigDecimal
 import java.time.LocalDate
 
+private const val VALID_TEXT_PATTERN = "(?s)(?!.*\\x00).*[^\\p{javaWhitespace}\\p{javaSpaceChar}].*"
+
 @Schema(
     description = "금융 거래 생성 요청",
     oneOf = [
@@ -51,12 +53,12 @@ sealed class CreateTransactionRequest {
     @get:NotNull
     @get:Size(max = 255)
     @get:Pattern(
-        regexp = "(?s).*[^\\p{javaWhitespace}\\p{javaSpaceChar}].*",
-        message = "Description must not be blank",
+        regexp = VALID_TEXT_PATTERN,
+        message = "Description must contain non-blank text without NUL characters",
     )
     abstract val description: String
 
-    @get:Pattern(regexp = "(?s).*[^\\p{javaWhitespace}\\p{javaSpaceChar}].*")
+    @get:Pattern(regexp = VALID_TEXT_PATTERN)
     abstract val tags: String?
 }
 
@@ -77,13 +79,13 @@ data class SpendingRequest(
     @field:NotNull
     @field:Size(max = 100)
     @field:Pattern(
-        regexp = "(?s).*[^\\p{javaWhitespace}\\p{javaSpaceChar}].*",
-        message = "Merchant must not be blank",
+        regexp = VALID_TEXT_PATTERN,
+        message = "Merchant must contain non-blank text without NUL characters",
     )
     val merchant: String,
 
     @field:Size(max = 50)
-    @field:Pattern(regexp = "(?s).*[^\\p{javaWhitespace}\\p{javaSpaceChar}].*")
+    @field:Pattern(regexp = VALID_TEXT_PATTERN)
     val paymentMethod: String? = null,
     override val tags: String? = null,
 
@@ -111,7 +113,7 @@ data class IncomeReceiptRequest(
     val categoryItemId: Int,
 
     @field:Size(max = 100)
-    @field:Pattern(regexp = "(?s).*[^\\p{javaWhitespace}\\p{javaSpaceChar}].*")
+    @field:Pattern(regexp = VALID_TEXT_PATTERN)
     val merchant: String? = null,
     override val tags: String? = null,
 ) : CreateTransactionRequest() {
@@ -157,7 +159,7 @@ data class RefundRequest(
     val categoryItemId: Int,
 
     @field:Size(max = 100)
-    @field:Pattern(regexp = "(?s).*[^\\p{javaWhitespace}\\p{javaSpaceChar}].*")
+    @field:Pattern(regexp = VALID_TEXT_PATTERN)
     val merchant: String? = null,
     override val tags: String? = null,
 ) : CreateTransactionRequest() {
