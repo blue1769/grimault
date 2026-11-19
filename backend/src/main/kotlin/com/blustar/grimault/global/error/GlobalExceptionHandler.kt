@@ -9,6 +9,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
+import tools.jackson.databind.exc.InvalidTypeIdException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -25,6 +26,19 @@ class GlobalExceptionHandler {
     fun handleHttpMessageNotReadableException(error: HttpMessageNotReadableException): ResponseEntity<ErrorResponse> {
         val status = HttpStatus.BAD_REQUEST
         val body = ErrorResponse.of(status, "Invalid request body")
+
+        return ResponseEntity(body, status)
+    }
+
+    @ExceptionHandler(InvalidTypeIdException::class)
+    fun handleInvalidTypeIdException(error: InvalidTypeIdException): ResponseEntity<ErrorResponse> {
+        val status = HttpStatus.BAD_REQUEST
+
+        val message = error.typeId?.let {
+            "Unsupported discriminator value: $it"
+        } ?: "Missing required discriminator"
+
+        val body = ErrorResponse.of(status, message)
 
         return ResponseEntity(body, status)
     }
