@@ -48,11 +48,15 @@ sealed class CreateTransactionRequest {
     @get:Digits(integer = 13, fraction = 2)
     abstract val amount: BigDecimal
 
-    @get:NotBlank
+    @get:NotNull
     @get:Size(max = 255)
+    @get:Pattern(
+        regexp = "(?s).*[^\\p{javaWhitespace}\\p{javaSpaceChar}].*",
+        message = "Description must not be blank",
+    )
     abstract val description: String
 
-    @get:Pattern(regexp = "(?sU).*\\S.*")
+    @get:Pattern(regexp = "(?s).*[^\\p{javaWhitespace}\\p{javaSpaceChar}].*")
     abstract val tags: String?
 }
 
@@ -70,12 +74,16 @@ data class SpendingRequest(
     @field:Positive
     val categoryItemId: Int,
 
-    @field:NotBlank
+    @field:NotNull
     @field:Size(max = 100)
+    @field:Pattern(
+        regexp = "(?s).*[^\\p{javaWhitespace}\\p{javaSpaceChar}].*",
+        message = "Merchant must not be blank",
+    )
     val merchant: String,
 
-    @field:Pattern(regexp = "(?sU).*\\S.*")
     @field:Size(max = 50)
+    @field:Pattern(regexp = "(?s).*[^\\p{javaWhitespace}\\p{javaSpaceChar}].*")
     val paymentMethod: String? = null,
     override val tags: String? = null,
 
@@ -102,8 +110,8 @@ data class IncomeReceiptRequest(
     @field:Positive
     val categoryItemId: Int,
 
-    @field:Pattern(regexp = "(?sU).*\\S.*")
     @field:Size(max = 100)
+    @field:Pattern(regexp = "(?s).*[^\\p{javaWhitespace}\\p{javaSpaceChar}].*")
     val merchant: String? = null,
     override val tags: String? = null,
 ) : CreateTransactionRequest() {
@@ -148,8 +156,8 @@ data class RefundRequest(
     @field:Positive
     val categoryItemId: Int,
 
-    @field:Pattern(regexp = "(?sU).*\\S.*")
     @field:Size(max = 100)
+    @field:Pattern(regexp = "(?s).*[^\\p{javaWhitespace}\\p{javaSpaceChar}].*")
     val merchant: String? = null,
     override val tags: String? = null,
 ) : CreateTransactionRequest() {
