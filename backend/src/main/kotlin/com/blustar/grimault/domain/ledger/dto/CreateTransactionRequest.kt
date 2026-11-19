@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes
 import com.fasterxml.jackson.annotation.JsonTypeInfo
 import io.swagger.v3.oas.annotations.media.DiscriminatorMapping
 import io.swagger.v3.oas.annotations.media.Schema
+import jakarta.validation.constraints.*
 import java.math.BigDecimal
 import java.time.LocalDate
 
@@ -36,10 +37,22 @@ import java.time.LocalDate
     JsonSubTypes.Type(RefundRequest::class, name = "REFUND"),
 )
 sealed class CreateTransactionRequest {
+    @get:NotNull
     abstract val type: TransactionType
+
+    @get:NotNull
     abstract val date: LocalDate
+
+    @get:NotNull
+    @get:Positive
+    @get:Digits(integer = 13, fraction = 2)
     abstract val amount: BigDecimal
+
+    @get:NotBlank
+    @get:Size(max = 255)
     abstract val description: String
+
+    @get:Pattern(regexp = "(?sU).*\\S.*")
     abstract val tags: String?
 }
 
@@ -48,11 +61,25 @@ data class SpendingRequest(
     override val date: LocalDate,
     override val amount: BigDecimal,
     override val description: String,
+
+    @field:NotNull
+    @field:Positive
     val accountId: Int,
+
+    @field:NotNull
+    @field:Positive
     val categoryItemId: Int,
+
+    @field:NotBlank
+    @field:Size(max = 100)
     val merchant: String,
+
+    @field:Pattern(regexp = "(?sU).*\\S.*")
+    @field:Size(max = 50)
     val paymentMethod: String? = null,
     override val tags: String? = null,
+
+    @field:NotNull
     val isWaste: Boolean? = false,
 ) : CreateTransactionRequest() {
 
@@ -66,8 +93,17 @@ data class IncomeReceiptRequest(
     override val date: LocalDate,
     override val amount: BigDecimal,
     override val description: String,
+
+    @field:NotNull
+    @field:Positive
     val accountId: Int,
+
+    @field:NotNull
+    @field:Positive
     val categoryItemId: Int,
+
+    @field:Pattern(regexp = "(?sU).*\\S.*")
+    @field:Size(max = 100)
     val merchant: String? = null,
     override val tags: String? = null,
 ) : CreateTransactionRequest() {
@@ -82,7 +118,13 @@ data class TransferRequest(
     override val date: LocalDate,
     override val amount: BigDecimal,
     override val description: String,
+
+    @field:NotNull
+    @field:Positive
     val sourceAccountId: Int,
+
+    @field:NotNull
+    @field:Positive
     val targetAccountId: Int,
     override val tags: String? = null,
 ) : CreateTransactionRequest() {
@@ -97,8 +139,17 @@ data class RefundRequest(
     override val date: LocalDate,
     override val amount: BigDecimal,
     override val description: String,
+
+    @field:NotNull
+    @field:Positive
     val accountId: Int,
+
+    @field:NotNull
+    @field:Positive
     val categoryItemId: Int,
+
+    @field:Pattern(regexp = "(?sU).*\\S.*")
+    @field:Size(max = 100)
     val merchant: String? = null,
     override val tags: String? = null,
 ) : CreateTransactionRequest() {
