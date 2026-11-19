@@ -24,4 +24,8 @@ enum class ErrorCode(
     INVALID_CATEGORY_ORDER(BAD_REQUEST, "Invalid category ordering"),
     INVALID_CATEGORY_TYPE(BAD_REQUEST, "Invalid category type"),
 
+    // Transaction
+    INVALID_TRANSACTION_ACCOUNT(BAD_REQUEST, "Invalid transaction account"),
+    INVALID_TRANSACTION_CATEGORY(BAD_REQUEST, "Invalid transaction category"),
+
 }

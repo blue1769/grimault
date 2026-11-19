@@ -19,7 +19,7 @@ class Transaction(
     val type: TransactionType,
 
     @Column(name = "merchant")
-    val merchant: String,
+    val merchant: String? = null,
 
     @Column(name = "description")
     val description: String,
