@@ -5,6 +5,7 @@ import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
+import org.springframework.validation.FieldError
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -47,10 +48,11 @@ class GlobalExceptionHandler {
     fun handleMethodArgumentNotValidException(error: MethodArgumentNotValidException): ResponseEntity<ErrorResponse> {
         val status = HttpStatus.BAD_REQUEST
 
-        val message = error.bindingResult.allErrors
-            .firstOrNull()
-            ?.defaultMessage
-            ?: "Invalid request body"
+        val objectError = error.bindingResult.allErrors.firstOrNull()
+
+        val message = objectError?.defaultMessage?.let {
+            if (objectError is FieldError) "${objectError.field}: $it" else it
+        } ?: "Invalid request body"
 
         val body = ErrorResponse.of(status, message)
 
